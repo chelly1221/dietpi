@@ -1,0 +1,628 @@
+/* 까치 쿼리 시스템 - 사이드바 스타일시트 (유튜브 스타일) */
+
+/* ===== 메인 컨테이너 레이아웃 ===== */
+.kachi-main-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ===== 사이드바 기본 스타일 ===== */
+.conversations-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px; /* 닫힌 상태 너비 */
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+  z-index: 99999;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer; /* 닫힌 상태에서 포인터 커서 */
+}
+
+/* 사이드바 열림 상태 */
+.conversations-sidebar.active {
+  width: 260px;
+  cursor: default; /* 열린 상태에서 기본 커서 */
+}
+
+/* ===== 메인 콘텐츠 영역 margin 처리 - 수정된 부분 ===== */
+/* 기본 상태 - 사이드바가 닫혀있을 때도 36px 밀기 (더 구체적인 선택자) */
+.kachi-main-container #kachi-query-container-wrapper,
+.kachi-query-wrapper #kachi-query-container-wrapper,
+body #kachi-query-container-wrapper {
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 36px !important; /* 닫힌 사이드바(72px)의 절반 */
+  width: calc(100% - 36px) !important;
+  position: relative;
+}
+
+/* 사이드바가 열렸을 때 콘텐츠 더 밀기 */
+body.sidebar-open .kachi-main-container #kachi-query-container-wrapper,
+body.sidebar-open .kachi-query-wrapper #kachi-query-container-wrapper,
+body.sidebar-open #kachi-query-container-wrapper {
+  margin-left: 130px !important; /* 열린 사이드바(260px)의 절반 */
+  width: calc(100% - 130px) !important;
+}
+
+/* ===== 메인 래퍼 스타일 ===== */
+.kachi-query-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ===== 사이드바 토글 버튼 (제거 - 사이드바 호버로 대체) ===== */
+.sidebar-toggle {
+  display: none !important;
+}
+
+/* ===== 워드프레스 관리자 바 보정 ===== */
+body.admin-bar .conversations-sidebar {
+  top: 32px;
+  height: calc(100vh - 32px);
+}
+
+body.admin-bar #kachi-query-container-wrapper {
+  padding-top: 32px;
+  margin-left: 36px !important; /* 기본 상태에서도 36px 유지 */
+}
+
+@media screen and (max-width: 782px) {
+  body.admin-bar .conversations-sidebar {
+    top: 46px;
+    height: calc(100vh - 46px);
+  }
+  
+  body.admin-bar #kachi-query-container-wrapper {
+    padding-top: 46px;
+  }
+}
+
+/* ===== 사이드바 헤더 ===== */
+.sidebar-header {
+  padding: 12px 12px 12px 24px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #222;
+  flex-shrink: 0;
+  position: relative;
+  min-height: 72px;
+  transition: padding 0.3s ease;
+}
+
+/* 사이드바 닫기 버튼 - 기본적으로 숨김 */
+.sidebar-close-btn {
+  display: none !important;
+}
+
+.conversations-sidebar:not(.active) .sidebar-header {
+  padding: 12px 12px;
+  justify-content: center;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.conversations-sidebar:not(.active) .sidebar-header h3 {
+  opacity: 0;
+  transform: translateX(-20px);
+  position: absolute;
+}
+
+/* 헤더 닫기 버튼 (열린 상태에서만 표시) */
+.sidebar-header-close {
+  background: transparent;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.conversations-sidebar.active .sidebar-header-close {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.sidebar-header-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 닫힌 상태에서 헤더에 햄버거 아이콘 표시 */
+.sidebar-header::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 2px;
+  background: white;
+  box-shadow: 0 -6px 0 white, 0 6px 0 white;
+  transition: opacity 0.3s ease;
+  opacity: 1;
+}
+
+.conversations-sidebar.active .sidebar-header::after {
+  opacity: 0;
+}
+
+/* ===== 사이드바 하단 영역 (새 대화 버튼) ===== */
+.sidebar-bottom {
+  border-top: 1px solid #333;
+  background: #222;
+  padding: 16px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px; /* 최소 높이 설정 */
+}
+
+.conversations-sidebar:not(.active) .sidebar-bottom {
+  padding: 16px 12px;
+  min-height: 72px; /* 닫힌 상태에서도 충분한 공간 확보 */
+}
+
+/* 새 대화 버튼 */
+.sidebar-bottom-new-chat {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 10px !important;
+  background: #a70638;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  margin: 0 auto; /* 중앙 정렬 */
+}
+
+.sidebar-bottom-new-chat:hover {
+  background: #8a052d;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
+}
+
+/* 새 대화 버튼 텍스트 (기본 숨김) */
+.sidebar-bottom-new-chat span {
+  display: none;
+  margin-left: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sidebar-bottom-new-chat svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* 사이드바가 열렸을 때 하단 버튼 확장 */
+.conversations-sidebar.active .sidebar-bottom-new-chat {
+  width: calc(100% - 20px); /* 양쪽 여백 확보 */
+  max-width: 240px; /* 최대 너비 제한 */
+  border-radius: 24px;
+  padding: 0 20px;
+  justify-content: center;
+  margin: 0 auto; /* 중앙 정렬 유지 */
+}
+
+.conversations-sidebar.active .sidebar-bottom-new-chat span {
+  display: inline;
+}
+
+.conversations-sidebar.active .sidebar-bottom-new-chat svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* hover 시 scale 효과 조정 */
+.conversations-sidebar.active .sidebar-bottom-new-chat:hover {
+  transform: scale(1.02);
+}
+
+/* 대화 목록 스타일 - 하단 패딩 제거 */
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 0;
+  overscroll-behavior: contain;
+  transition: padding 0.3s ease;
+  position: relative;
+}
+
+.conversations-sidebar:not(.active) .conversation-list {
+  padding: 10px 0;
+}
+
+.conversation-list::-webkit-scrollbar {
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.conversations-sidebar.active .conversation-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversation-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* ===== 대화 항목 - 더 슬림하게 ===== */
+.conversation-item {
+  padding: 8px 16px; /* 12px에서 8px로 감소 */
+  margin: 0 8px 2px; /* 하단 마진도 4px에서 2px로 감소 */
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px; /* 12px에서 10px로 감소 */
+  min-height: 40px; /* 48px에서 40px로 감소 */
+  overflow: hidden;
+}
+
+.conversations-sidebar:not(.active) .conversation-item {
+  padding: 8px;
+  margin: 0 12px 2px;
+  justify-content: center;
+}
+
+.conversation-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.conversation-item.active {
+  background: rgba(167, 6, 56, 0.2);
+  border-left: 3px solid #a70638;
+  padding-left: 13px;
+}
+
+.conversations-sidebar:not(.active) .conversation-item.active {
+  border-left: 0;
+  border-radius: 50%;
+  width: 40px; /* 48px에서 40px로 감소 */
+  height: 40px; /* 48px에서 40px로 감소 */
+  padding: 0;
+  margin: 0 auto 2px;
+  background: #a70638;
+}
+
+/* 대화 아이콘 (닫힌 상태에서 표시) */
+.conversation-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px; /* 14px에서 12px로 감소 */
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.conversations-sidebar.active .conversation-icon {
+  width: 28px; /* 32px에서 28px로 감소 */
+  height: 28px; /* 32px에서 28px로 감소 */
+  font-size: 14px; /* 16px에서 14px로 감소 */
+}
+
+.conversation-item.active .conversation-icon {
+  background: transparent;
+}
+
+.conversation-info {
+  flex: 1;
+  min-width: 0;
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s ease;
+}
+
+.conversations-sidebar:not(.active) .conversation-info {
+  opacity: 0;
+  transform: translateX(-20px);
+  position: absolute;
+  pointer-events: none;
+}
+
+.conversation-title {
+  font-size: 13px; /* 14px에서 13px로 감소 */
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 1px; /* 2px에서 1px로 감소 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3; /* 줄 높이 조정 */
+}
+
+.conversation-date {
+  font-size: 11px; /* 12px에서 11px로 감소 */
+  color: #aaa;
+  line-height: 1.2; /* 줄 높이 조정 */
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 2px; /* 4px에서 2px로 감소 */
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: all 0.2s ease;
+}
+
+.conversation-item:hover .conversation-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.conversations-sidebar:not(.active) .conversation-actions {
+  display: none;
+}
+
+.conversation-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px; /* 4px에서 3px로 감소 */
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; /* 24px에서 22px로 감소 */
+  height: 22px; /* 24px에서 22px로 감소 */
+}
+
+.conversation-actions button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.conversation-actions button svg {
+  width: 12px; /* 14px에서 12px로 감소 */
+  height: 12px; /* 14px에서 12px로 감소 */
+}
+
+/* ===== 로딩 인디케이터 ===== */
+.loading-more {
+  text-align: center;
+  padding: 15px;
+  color: #888;
+  font-size: 12px;
+}
+
+.loading-more.loading {
+  color: #a70638;
+}
+
+.loading-more.loading::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 8px;
+  border: 2px solid #a70638;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 빈 상태 ===== */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+  font-size: 13px; /* 14px에서 13px로 감소 */
+  transition: all 0.3s ease;
+}
+
+.conversations-sidebar:not(.active) .empty-state {
+  padding: 20px 10px;
+  font-size: 11px; /* 12px에서 11px로 감소 */
+  opacity: 0;
+}
+
+/* ===== 툴팁 (닫힌 상태에서 호버 시) ===== */
+.conversation-item::after {
+  content: attr(data-title);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  background: #333;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.conversations-sidebar:not(.active) .conversation-item:hover::after {
+  opacity: 1;
+}
+
+/* ===== 사이드바 열림 시 콘텐츠 이동 ===== */
+@media (min-width: 1024px) {
+  body.sidebar-open #kachi-query-container-wrapper {
+    margin-left: 130px !important;
+    width: calc(100% - 130px) !important;
+  }
+}
+
+/* ===== 모바일 반응형 ===== */
+@media (max-width: 768px) {
+  /* 모바일에서는 기존 방식 유지 */
+  .conversations-sidebar {
+    left: -260px;
+    width: 260px;
+  }
+  
+  .conversations-sidebar.active {
+    left: 0;
+  }
+  
+  #kachi-query-container-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  body.sidebar-open #kachi-query-container-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* 모바일에서는 토글 버튼 표시 */
+  .sidebar-toggle {
+    display: flex !important;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 100000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  /* 모바일 오버레이 */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 99998;
+  }
+  
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  /* 모바일 닫기 버튼 - 모바일에서만 표시 */
+  .sidebar-close-btn {
+    display: flex !important;
+    position: absolute;
+    top: 20px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+  }
+  
+  .sidebar-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+  }
+  
+  .sidebar-close-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ===== 애니메이션 개선 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .conversations-sidebar,
+  #kachi-query-container-wrapper,
+  .conversation-item,
+  .conversation-info,
+  .conversation-actions,
+  .sidebar-header h3,
+  .sidebar-bottom-new-chat,
+  .sidebar-header-close {
+    transition: none !important;
+  }
+}
+
+/* ===== 인쇄 스타일 ===== */
+@media print {
+  .conversations-sidebar {
+    display: none !important;
+  }
+  
+  #kachi-query-container-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}

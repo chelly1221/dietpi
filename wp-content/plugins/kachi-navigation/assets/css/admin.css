@@ -1,0 +1,172 @@
+/* 관리자 페이지 래퍼 */
+.smm-admin-wrap {
+    max-width: 1200px;
+    margin: 20px 0;
+}
+
+/* 쇼트코드 정보 박스 */
+.smm-shortcode-info {
+    background-color: #f0f0f1;
+    border: 1px solid #c3c4c7;
+    border-left: 4px solid #a70638;
+    padding: 15px 20px;
+    margin: 20px 0;
+}
+
+.smm-shortcode-info p {
+    margin: 5px 0;
+}
+
+.smm-shortcode-info code {
+    background-color: #fff;
+    padding: 3px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+/* 설정 섹션 */
+.smm-settings-section {
+    background-color: #fff;
+    border: 1px solid #c3c4c7;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.smm-settings-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+/* 관리자 컨테이너 */
+.smm-admin-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+/* 섹션 스타일 */
+.smm-add-menu-section,
+.smm-menu-list-section {
+    background-color: #fff;
+    border: 1px solid #c3c4c7;
+    padding: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.smm-add-menu-section h2,
+.smm-menu-list-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+/* 폼 테이블 커스터마이징 */
+.smm-add-menu-section .form-table {
+    margin-top: 0;
+}
+
+.smm-add-menu-section .form-table th {
+    width: 120px;
+}
+
+/* 메뉴 리스트 테이블 */
+.smm-menu-list-section .wp-list-table {
+    margin-top: 0;
+}
+
+.smm-menu-list-section .wp-list-table th:first-child,
+.smm-menu-list-section .wp-list-table td:first-child {
+    width: 50px;
+    text-align: center;
+}
+
+.smm-menu-list-section .wp-list-table th:nth-child(4),
+.smm-menu-list-section .wp-list-table td:nth-child(4) {
+    width: 100px;
+}
+
+.smm-menu-list-section .wp-list-table th:last-child,
+.smm-menu-list-section .wp-list-table td:last-child {
+    width: 150px;
+}
+
+/* 드래그 핸들 */
+.smm-drag-handle {
+    cursor: move;
+    color: #999;
+}
+
+.smm-drag-handle:hover {
+    color: #666;
+}
+
+.smm-drag-handle .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* 드래그 중 스타일 */
+.ui-sortable-helper {
+    background-color: #f6f7f7;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.ui-sortable-placeholder {
+    background-color: #f0f0f1;
+    visibility: visible !important;
+}
+
+/* 삭제 버튼 */
+.smm-delete-btn {
+    background-color: #dc3232 !important;
+    color: #fff !important;
+    border-color: #dc3232 !important;
+}
+
+.smm-delete-btn:hover {
+    background-color: #aa2222 !important;
+    border-color: #aa2222 !important;
+}
+
+/* 색상 입력 필드 */
+input[type="color"] {
+    cursor: pointer;
+}
+
+/* 반응형 */
+@media (max-width: 992px) {
+    .smm-admin-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 알림 메시지 */
+.smm-admin-wrap .notice {
+    margin: 10px 0;
+}
+
+/* 빈 상태 메시지 */
+.smm-menu-list-section p {
+    color: #666;
+    font-style: italic;
+}
+
+/* 버튼 스타일 개선 */
+.smm-add-menu-section .button-primary {
+    background-color: #a70638;
+    border-color: #a70638;
+}
+
+.smm-add-menu-section .button-primary:hover {
+    background-color: #8a052e;
+    border-color: #8a052e;
+}

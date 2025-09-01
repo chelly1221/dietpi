@@ -1,0 +1,237 @@
+/**
+ * 3chan PDF Manager - Main Stylesheet
+ * Version: 2.2.0
+ * Author: 3chan
+ * Description: PDF 문서 업로드 및 관리 시스템 스타일시트
+ * 
+ * 파일 구조:
+ * - variables.css : CSS 변수 및 기본 설정
+ * - layout.css    : 레이아웃 및 구조
+ * - components.css: UI 컴포넌트
+ * - modals.css    : 모달 및 오버레이
+ * - responsive.css: 반응형 디자인 및 애니메이션
+ */
+
+/* ===== CSS 파일 Import ===== */
+@import url('./variables.css');
+@import url('./layout.css');
+@import url('./components.css');
+@import url('./modals.css');
+@import url('./responsive.css');
+
+/* ===== 추가 커스터마이징 ===== */
+/* 
+ * 특정 프로젝트나 사이트에 맞춰 추가로 필요한 스타일은 
+ * 여기에 작성하거나 별도의 custom.css 파일을 만들어 import 하세요.
+ */
+
+/* ===== 테마 변형 (옵션) ===== */
+/* Dark Theme Example (향후 확장 가능) */
+.theme-dark {
+  --primary-color: #d32f2f;
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --border-color: #333333;
+}
+
+/* Compact Theme Example */
+.theme-compact {
+  --header-height: 50px;
+  --control-height: 28px;
+  --spacing-md: 12px;
+  --spacing-lg: 18px;
+  --font-size-base: 0.875rem;
+}
+
+/* ===== 브라우저별 호환성 ===== */
+/* Firefox */
+@-moz-document url-prefix() {
+  .margin-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+  }
+}
+
+/* Edge/IE */
+@supports (-ms-ime-align: auto) {
+  .pdf-manager-container {
+    /* Edge specific styles */
+  }
+}
+
+/* ===== 성능 최적화 ===== */
+/* GPU 가속을 위한 will-change 속성 */
+.modal,
+.notification,
+.bird-container {
+  will-change: transform, opacity;
+}
+
+/* 애니메이션 완료 후 will-change 제거 */
+.modal.shown,
+.notification.shown {
+  will-change: auto;
+}
+
+/* ===== 접근성 개선 ===== */
+/* 스크린 리더 전용 텍스트 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 키보드 네비게이션 표시 */
+.pdf-manager-container a:focus,
+.pdf-manager-container button:focus,
+.pdf-manager-container input:focus,
+.pdf-manager-container select:focus,
+.pdf-manager-container textarea:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Skip to content 링크 */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary-color);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  z-index: 9999;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ===== 플러그인 충돌 방지 ===== */
+/* 다른 WordPress 플러그인과의 충돌 방지를 위한 스타일 리셋 */
+.pdf-manager-container .ui-widget,
+.pdf-manager-container .ui-widget *,
+.pdf-manager-container .select2-container,
+.pdf-manager-container .select2-container * {
+  font-family: var(--font-family) !important;
+  font-size: inherit !important;
+}
+
+/* ===== 디버그 모드 (개발용) ===== */
+.debug-mode .pdf-manager-container * {
+  outline: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.debug-mode .pdf-manager-container .upload-section {
+  background-color: rgba(255, 0, 0, 0.05);
+}
+
+.debug-mode .pdf-manager-container .document-section {
+  background-color: rgba(0, 255, 0, 0.05);
+}
+
+/* ===== 로딩 상태 ===== */
+.pdf-manager-container.is-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.pdf-manager-container.is-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ===== 에러 상태 ===== */
+.pdf-manager-container.has-error {
+  border: 2px solid var(--danger-color);
+}
+
+.pdf-manager-container .error-message {
+  background-color: #ffebee;
+  color: var(--danger-color);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== 커스텀 스크롤바 (Webkit) ===== */
+.pdf-manager-container {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc var(--bg-secondary);
+}
+
+/* ===== 플레이스홀더 스타일 ===== */
+.pdf-manager-container ::-webkit-input-placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.pdf-manager-container ::-moz-placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.pdf-manager-container ::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* ===== 파일 타입별 아이콘 색상 ===== */
+.file-icon-pdf { color: #d32f2f; }
+.file-icon-docx { color: #2196f3; }
+.file-icon-pptx { color: #ff6f00; }
+.file-icon-hwpx { color: #00897b; }
+
+/* ===== 배경 이미지 지원 (설정에서 활성화 시) ===== */
+.pdf-manager-container.has-background::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: var(--background-image);
+  background-position: var(--background-position, center center);
+  background-size: var(--background-size, cover);
+  background-repeat: no-repeat;
+  opacity: var(--background-opacity, 0.1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ===== 버전 정보 ===== */
+.pdf-manager-version {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+/* ===== End of Stylesheet ===== */

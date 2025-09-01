@@ -1,0 +1,425 @@
+/* 관리자 페이지 전체 래퍼 */
+.facility-admin-wrap {
+    margin: 20px 20px 20px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* 페이지 제목 */
+.facility-admin-wrap h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 30px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.facility-admin-wrap h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(135deg, #a70638, #dc3545);
+    border-radius: 2px;
+}
+
+/* 알림 박스 개선 */
+.facility-admin-wrap .notice {
+    border-radius: 12px;
+    border-left-width: 4px;
+    padding: 20px;
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 25px;
+}
+
+.facility-admin-wrap .notice.notice-info {
+    border-left-color: #3498db;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+}
+
+.facility-admin-wrap .notice p {
+    margin: 8px 0;
+    color: #334155;
+    line-height: 1.6;
+}
+
+.facility-admin-wrap .notice strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.facility-admin-wrap .notice code {
+    background: #ffffff;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #a70638;
+    border: 1px solid rgba(167, 6, 56, 0.2);
+    font-weight: 500;
+}
+
+/* 카드 스타일 개선 */
+.facility-admin-wrap .card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.facility-admin-wrap .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #a70638, #dc3545);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.facility-admin-wrap .card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.facility-admin-wrap .card:hover::before {
+    transform: scaleX(1);
+}
+
+/* 카드 제목 */
+.facility-admin-wrap .card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 24px;
+    line-height: 1.4;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.facility-admin-wrap .card h2::before {
+    content: '';
+    width: 5px;
+    height: 24px;
+    background: linear-gradient(to bottom, #a70638, #dc3545);
+    border-radius: 3px;
+}
+
+/* 정보 항목 스타일 */
+.facility-admin-wrap .card p {
+    margin: 12px 0;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.facility-admin-wrap .card p strong {
+    color: #1e293b;
+    font-weight: 600;
+    min-width: 120px;
+    display: inline-block;
+}
+
+.facility-admin-wrap .card a {
+    color: #a70638;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.facility-admin-wrap .card a:hover {
+    color: #dc3545;
+    text-decoration: underline;
+}
+
+/* 상태 표시 스타일 */
+.facility-admin-wrap .card span[style*="color: green"] {
+    background: #dcfce7;
+    color: #166534 !important;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #bbf7d0;
+}
+
+/* 배경 이미지 설정 섹션 */
+.facility-admin-wrap .background-preview {
+    max-width: 400px;
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.facility-admin-wrap .background-preview:hover {
+    border-color: #a70638;
+    background: #fef2f2;
+}
+
+.facility-admin-wrap .background-preview img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.facility-admin-wrap .background-preview p {
+    margin: 0;
+    color: #64748b;
+    font-style: italic;
+    font-size: 15px;
+}
+
+/* 폼 테이블 스타일 */
+.facility-admin-wrap .form-table {
+    margin-top: 20px;
+}
+
+.facility-admin-wrap .form-table th {
+    width: 180px;
+    padding: 20px 20px 20px 0;
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 15px;
+}
+
+.facility-admin-wrap .form-table td {
+    padding: 20px 0;
+}
+
+/* 셀렉트 박스 스타일 */
+.facility-admin-wrap select {
+    min-width: 250px;
+    padding: 10px 15px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #ffffff;
+    color: #1e293b;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.facility-admin-wrap select:hover {
+    border-color: #cbd5e1;
+}
+
+.facility-admin-wrap select:focus {
+    outline: none;
+    border-color: #a70638;
+    box-shadow: 0 0 0 3px rgba(167, 6, 56, 0.1);
+}
+
+/* 버튼 스타일 개선 */
+.facility-admin-wrap .button {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    line-height: 1;
+    margin-right: 10px;
+}
+
+.facility-admin-wrap .button-primary {
+    background: linear-gradient(135deg, #a70638 0%, #dc3545 100%);
+    color: white;
+    border-color: #a70638;
+    box-shadow: 0 2px 4px rgba(167, 6, 56, 0.2);
+}
+
+.facility-admin-wrap .button-primary:hover {
+    background: linear-gradient(135deg, #8b052e 0%, #c82333 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(167, 6, 56, 0.3);
+}
+
+.facility-admin-wrap .button-secondary {
+    background: #ffffff;
+    color: #475569;
+    border: 2px solid #e5e7eb;
+}
+
+.facility-admin-wrap .button-secondary:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.facility-admin-wrap .button-secondary[onclick*="clearAllFacilityData"] {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.facility-admin-wrap .button-secondary[onclick*="clearAllFacilityData"]:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+
+/* 제출 영역 */
+.facility-admin-wrap .submit {
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* 시설 정의 테이블 스타일 */
+.facility-admin-wrap h3 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: #1e293b;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.facility-admin-wrap h3::before {
+    content: '📍';
+    font-size: 20px;
+}
+
+.facility-admin-wrap .wp-list-table {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    margin-top: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.facility-admin-wrap .wp-list-table thead {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.facility-admin-wrap .wp-list-table th {
+    padding: 15px 20px;
+    font-weight: 600;
+    color: #1e293b;
+    text-align: left;
+    border-bottom: 2px solid #e5e7eb;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.facility-admin-wrap .wp-list-table td {
+    padding: 15px 20px;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.facility-admin-wrap .wp-list-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.facility-admin-wrap .wp-list-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.facility-admin-wrap .wp-list-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.facility-admin-wrap .wp-list-table strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* 빈 상태 메시지 */
+.facility-admin-wrap p:only-child {
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+    padding: 40px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+}
+
+/* 로딩 상태 */
+.facility-admin-wrap .spinner {
+    float: none;
+    margin: 0 10px;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 782px) {
+    .facility-admin-wrap .form-table th {
+        width: 100%;
+        padding-bottom: 10px;
+    }
+    
+    .facility-admin-wrap select {
+        width: 100%;
+    }
+    
+    .facility-admin-wrap .button {
+        margin-bottom: 10px;
+    }
+    
+    .facility-admin-wrap .card {
+        padding: 20px;
+    }
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.facility-admin-wrap .card {
+    animation: slideIn 0.5s ease-out;
+}
+
+/* 스크롤바 스타일링 */
+.facility-admin-wrap ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.facility-admin-wrap ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.facility-admin-wrap ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #a70638, #dc3545);
+    border-radius: 5px;
+}
+
+.facility-admin-wrap ::-webkit-scrollbar-thumb:hover {
+    background: #a70638;
+}

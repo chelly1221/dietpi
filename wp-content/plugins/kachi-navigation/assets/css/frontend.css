@@ -1,0 +1,601 @@
+/* 사이드바가 있을 때 body와 주요 컨테이너 조정 */
+body.smm-sidebar-active {
+    margin-left: 125px;
+}
+
+body.smm-sidebar-active.smm-sidebar-right {
+    margin-left: 0;
+    margin-right: var(--smm-sidebar-width, 250px);
+}
+
+/* 주요 컨테이너들의 너비 조정 */
+body.smm-sidebar-active .site,
+body.smm-sidebar-active .site-content,
+body.smm-sidebar-active .content-area,
+body.smm-sidebar-active #page,
+body.smm-sidebar-active #main,
+body.smm-sidebar-active .container,
+body.smm-sidebar-active .wrapper,
+body.smm-sidebar-active #wrapper,
+body.smm-sidebar-active #content {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+/* Elementor 지원 */
+body.smm-sidebar-active .elementor-section-wrap {
+    max-width: 100% !important;
+}
+
+/* 전체 너비 요소들 처리 */
+body.smm-sidebar-active .alignfull,
+body.smm-sidebar-active .wp-block-group.alignfull,
+body.smm-sidebar-active .wp-block-cover.alignfull {
+    width: calc(100vw - var(--smm-sidebar-width, 250px)) !important;
+    max-width: calc(100vw - var(--smm-sidebar-width, 250px)) !important;
+    margin-left: calc(-1 * var(--smm-sidebar-width, 250px) / 2) !important;
+}
+
+body.smm-sidebar-active.smm-sidebar-right .alignfull,
+body.smm-sidebar-active.smm-sidebar-right .wp-block-group.alignfull,
+body.smm-sidebar-active.smm-sidebar-right .wp-block-cover.alignfull {
+    margin-left: 0 !important;
+    margin-right: calc(-1 * var(--smm-sidebar-width, 250px) / 2) !important;
+}
+
+/* 사이드바 메뉴 컨테이너 */
+.smm-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 9990;
+}
+
+/* 오른쪽 위치 */
+.smm-container[data-position="right"] {
+    left: auto;
+    right: 0;
+}
+
+/* 사이드바 메뉴 */
+.smm-sidebar {
+    width: var(--smm-width, 250px);
+    height: 100vh;
+    background-color: var(--smm-bg-color, #1a1a1a);
+    color: #fff;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.smm-container[data-position="right"] .smm-sidebar {
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 사이드바 헤더 */
+.smm-sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--smm-bg-color, #1a1a1a);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.smm-sidebar-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* 메뉴 추가 버튼 */
+.smm-add-menu-btn {
+    background-color: var(--smm-point-color, #a70638);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.smm-add-menu-btn:hover {
+    background-color: #8a052e;
+    transform: scale(1.05);
+}
+
+.smm-add-menu-btn:active {
+    transform: scale(0.95);
+}
+
+.smm-add-menu-btn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+/* 메뉴 리스트 */
+.smm-menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* 드래그 가능한 상태 */
+.smm-menu-list.smm-sortable {
+    position: relative;
+}
+
+.smm-menu-item {
+    margin: 0;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* 드래그 중인 아이템 */
+.smm-menu-item.ui-sortable-helper {
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    cursor: move;
+}
+
+/* 드래그 플레이스홀더 */
+.smm-sortable-placeholder {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    visibility: visible !important;
+    height: 50px;
+}
+
+/* 드래그 핸들 (관리자만) */
+.smm-drag-handle {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.smm-admin-mode .smm-drag-handle {
+    display: flex;
+}
+
+body.smm-admin-mode .smm-menu-link {
+    padding-left: 30px;
+}
+
+.smm-drag-handle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.smm-menu-link {
+    display: block;
+    padding: 15px 20px;
+    padding-right: 80px; /* 액션 버튼을 위한 공간 */
+    color: #fff;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.smm-menu-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.smm-menu-item.active .smm-menu-link {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--smm-point-color, #a70638);
+}
+
+/* 메뉴 액션 버튼들 */
+.smm-menu-actions {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 5px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.smm-menu-item:hover .smm-menu-actions {
+    opacity: 1;
+}
+
+.smm-menu-actions button {
+    background: none;
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+    padding: 0;
+}
+
+.smm-menu-actions button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.smm-menu-actions button svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+/* 메뉴가 없을 때 스타일 */
+.smm-no-menu {
+    padding: 15px 20px;
+    color: #999;
+    font-style: italic;
+    text-align: center;
+}
+
+/* WordPress 관리자 바가 있을 때 조정 */
+body.admin-bar .smm-container {
+    top: 32px;
+    height: calc(100vh - 32px);
+}
+
+body.admin-bar .smm-sidebar {
+    height: calc(100vh - 32px);
+}
+
+@media (max-width: 782px) {
+    body.admin-bar .smm-container {
+        top: 46px;
+        height: calc(100vh - 46px);
+    }
+    
+    body.admin-bar .smm-sidebar {
+        height: calc(100vh - 46px);
+    }
+}
+
+/* 모달 */
+.smm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.smm-modal-content {
+    background-color: #fff;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: smm-modal-appear 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.smm-modal-content.smm-modal-small {
+    max-width: 400px;
+}
+
+@keyframes smm-modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.smm-modal-header {
+    background-color: var(--smm-bg-color, #1a1a1a);
+    color: #fff;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.smm-modal-header h4 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.smm-modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.smm-modal-close:hover {
+    opacity: 0.8;
+}
+
+.smm-modal-close svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.smm-modal-body {
+    padding: 30px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* 폼 스타일 */
+.smm-form-group {
+    margin-bottom: 20px;
+}
+
+.smm-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.smm-form-group input,
+.smm-form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.smm-form-group input:focus,
+.smm-form-group select:focus {
+    outline: none;
+    border-color: var(--smm-point-color, #a70638);
+}
+
+.smm-form-group .description {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #666;
+}
+
+.smm-form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* 버튼 스타일 */
+.smm-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.smm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.smm-btn-primary {
+    background-color: var(--smm-point-color, #a70638);
+    color: #fff;
+}
+
+.smm-btn-primary:hover:not(:disabled) {
+    background-color: #8a052e;
+}
+
+.smm-btn-primary svg {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.smm-btn-danger {
+    background-color: #dc3232;
+    color: #fff;
+}
+
+.smm-btn-danger:hover:not(:disabled) {
+    background-color: #aa2222;
+}
+
+.smm-btn-cancel {
+    background-color: #ddd;
+    color: #333;
+}
+
+.smm-btn-cancel:hover:not(:disabled) {
+    background-color: #ccc;
+}
+
+/* 스피너 */
+.smm-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: smm-spin 0.8s linear infinite;
+}
+
+@keyframes smm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 알림 메시지 */
+.smm-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    background-color: #333;
+    color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.smm-notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.smm-notification-success {
+    background-color: #46b450;
+}
+
+.smm-notification-error {
+    background-color: #dc3232;
+}
+
+/* WordPress 관리자 바가 있을 때 조정 */
+body.admin-bar .smm-notification {
+    top: 52px;
+}
+
+@media (max-width: 782px) {
+    body.admin-bar .smm-notification {
+        top: 66px;
+    }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    /* 모바일에서는 오버레이 방식 */
+    body.smm-sidebar-active {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    
+    /* 모바일에서 너비 조정 해제 */
+    body.smm-sidebar-active .site,
+    body.smm-sidebar-active .site-content,
+    body.smm-sidebar-active .content-area,
+    body.smm-sidebar-active #page,
+    body.smm-sidebar-active #main,
+    body.smm-sidebar-active .container,
+    body.smm-sidebar-active .wrapper,
+    body.smm-sidebar-active #wrapper,
+    body.smm-sidebar-active #content,
+    body.smm-sidebar-active .alignfull {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    
+    .smm-container {
+        width: 80%;
+        max-width: 300px;
+    }
+    
+    .smm-sidebar {
+        width: 100%;
+    }
+    
+    /* 모바일 오버레이 배경 */
+    .smm-mobile-overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9989;
+    }
+    
+    /* 닫기 버튼 추가 */
+    .smm-mobile-close {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        z-index: 10;
+    }
+    
+    .smm-menu-link {
+        padding-right: 80px;
+    }
+    
+    .smm-menu-actions {
+        opacity: 1;
+    }
+    
+    .smm-modal-content {
+        margin: 20px;
+        width: calc(100% - 40px);
+        max-height: calc(100vh - 40px);
+    }
+    
+    .smm-notification {
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+}
+
+/* 데스크톱에서는 모바일 요소 숨김 */
+@media (min-width: 769px) {
+    .smm-mobile-overlay,
+    .smm-mobile-close {
+        display: none;
+    }
+}

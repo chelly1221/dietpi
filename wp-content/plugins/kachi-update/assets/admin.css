@@ -1,0 +1,171 @@
+/* Admin styles for Version Notice Plugin */
+#version-notice-admin {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.version-notice-form {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    flex: 1;
+    max-width: 600px;
+}
+
+.version-notice-list {
+    flex: 2;
+}
+
+.version-notice-form h2,
+.version-notice-list h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e4e7;
+}
+
+#notices-list {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.notice-group {
+    border-bottom: 1px solid #e2e4e7;
+}
+
+.notice-group:last-child {
+    border-bottom: none;
+}
+
+.notice-group-header {
+    background: #f3f4f5;
+    padding: 10px 15px;
+    font-weight: 600;
+    color: #a70638;
+}
+
+.notice-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f1;
+    transition: background-color 0.3s ease;
+}
+
+.notice-item:hover {
+    background-color: #f6f7f7;
+}
+
+.notice-item:last-child {
+    border-bottom: none;
+}
+
+.notice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.notice-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.notice-version {
+    background-color: #a70638;
+    color: #fff;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.notice-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.notice-title {
+    font-weight: 600;
+    color: #23282d;
+}
+
+.notice-content {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.notice-content ul {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.notice-content li {
+    margin: 3px 0;
+}
+
+.notice-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.notice-actions button {
+    cursor: pointer;
+}
+
+#cancel-edit {
+    display: none;
+}
+
+.editing #cancel-edit {
+    display: inline-block;
+}
+
+/* Settings page styles */
+.background-image-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+#background-image-preview img {
+    border: 1px solid #ddd;
+    padding: 5px;
+    background: #f9f9f9;
+}
+
+#page-selection {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#page-selection label {
+    display: block;
+    margin: 5px 0;
+    padding: 3px 0;
+}
+
+#page-selection label:hover {
+    background: #fff;
+    padding-left: 5px;
+    margin-left: -5px;
+}
+
+/* Responsive design */
+@media screen and (max-width: 1200px) {
+    #version-notice-admin {
+        flex-direction: column;
+    }
+    
+    .version-notice-form {
+        max-width: none;
+    }
+}

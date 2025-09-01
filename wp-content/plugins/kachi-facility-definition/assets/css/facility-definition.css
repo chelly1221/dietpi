@@ -1,0 +1,468 @@
+/* 메인 래퍼 스타일 - 팁 박스 제거로 패딩 조정 */
+.facility-definition-wrapper {
+    max-width: 600px;
+    margin: 40px auto;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 40px 35px;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 배경 장식 요소 */
+.facility-definition-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(167, 6, 56, 0.03) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* 제목 스타일 */
+.facility-definition-wrapper h2 {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a70638 0%, #dc3545 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 35px;
+    text-align: center;
+    letter-spacing: -0.5px;
+    position: relative;
+}
+
+/* 삭제된 정보 배너 스타일 */
+
+/* 폼 스타일 */
+#facilityForm {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    margin-bottom: 30px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 레이블 스타일 */
+.facility-definition-wrapper label {
+    display: block;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 16px 0 8px;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.facility-definition-wrapper label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #a70638, #dc3545);
+    border-radius: 3px;
+    opacity: 0.8;
+}
+
+.facility-definition-wrapper label small {
+    font-weight: 400;
+    color: #95a5a6;
+    font-size: 13px;
+    margin-left: 5px;
+}
+
+/* 입력 필드 스타일 */
+.modern-input {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
+    box-sizing: border-box;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #f8f9fa;
+    font-weight: 500;
+}
+
+.modern-input:hover {
+    border-color: #cbd5e1;
+    background: #ffffff;
+}
+
+.modern-input:focus {
+    border-color: #a70638;
+    outline: none;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(167, 6, 56, 0.1);
+    transform: translateY(-1px);
+}
+
+/* 추가 버튼만 있는 컨테이너 */
+.button-container {
+    margin-top: 24px;
+}
+
+/* 추가 버튼 스타일 */
+.add-button {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    letter-spacing: -0.2px;
+    background: linear-gradient(135deg, #a70638 0%, #dc3545 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(167, 6, 56, 0.3);
+}
+
+.add-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.add-button:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+.add-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(167, 6, 56, 0.4);
+}
+
+/* 로딩 인디케이터 */
+#loadingIndicator {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #a70638;
+    border-radius: 50%;
+    animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#loadingIndicator p {
+    margin-top: 15px;
+    color: #2c3e50;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+/* 리스트 스타일 */
+#facilityList {
+    margin-top: 30px;
+    margin-bottom: 0;
+    list-style: none;
+    padding: 0;
+}
+
+#facilityList li {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#facilityList li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, #a70638, #dc3545);
+    transform: scaleY(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#facilityList li:hover {
+    background: #f8f9fa;
+    border-color: #e1e8ed;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#facilityList li:hover::before {
+    transform: scaleY(1);
+}
+
+.facility-item-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.facility-item-text {
+    font-size: 15px;
+    color: #2c3e50;
+    font-weight: 500;
+    flex: 1;
+}
+
+.facility-item-text strong {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* 액션 버튼 컨테이너 */
+.facility-item-actions {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#facilityList li:hover .facility-item-actions {
+    opacity: 1;
+}
+
+/* 액션 버튼 스타일 */
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn.edit-btn:hover {
+    background: #3498db;
+    color: white;
+}
+
+.action-btn.delete-btn:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* 편집 모드 스타일 */
+.facility-item-edit {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.facility-edit-inputs {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.facility-edit-inputs input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.facility-edit-inputs input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.facility-edit-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.edit-save-btn, .edit-cancel-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-save-btn {
+    background: #3498db;
+    color: white;
+    min-width: 80px;
+}
+
+.edit-save-btn:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.edit-cancel-btn {
+    background: #e5e7eb;
+    color: #64748b;
+    min-width: 80px;
+}
+
+.edit-cancel-btn:hover {
+    background: #cbd5e1;
+    color: #475569;
+}
+
+/* 편집 중인 아이템 스타일 */
+#facilityList li.editing {
+    background: #f0f8ff;
+    border-color: #3498db;
+    padding: 20px;
+}
+
+#facilityList li.editing .facility-item-content {
+    display: none;
+}
+
+#facilityList li.editing .facility-item-edit {
+    display: flex;
+}
+
+/* SVG 아이콘 스타일 */
+.action-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: all 0.2s ease;
+}
+
+.action-btn.edit-btn svg {
+    stroke: #64748b;
+    fill: none;
+}
+
+.action-btn.edit-btn:hover svg {
+    stroke: white;
+}
+
+.action-btn.delete-btn svg {
+    stroke: #64748b;
+    fill: #64748b;
+}
+
+.action-btn.delete-btn:hover svg {
+    stroke: white;
+    fill: white;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
+    .facility-definition-wrapper {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+    
+    .facility-definition-wrapper h2 {
+        font-size: 28px;
+    }
+    
+    #facilityForm {
+        padding: 20px;
+    }
+    
+    .button-container {
+        flex-direction: column;
+    }
+    
+    .modern-button {
+        width: 100%;
+    }
+}
+
+/* 애니메이션 효과 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.facility-definition-wrapper > * {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* 스크롤바 커스터마이징 */
+#facilityList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#facilityList::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 4px;
+}
+
+#facilityList::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #a70638, #dc3545);
+    border-radius: 4px;
+}
+
+#facilityList::-webkit-scrollbar-thumb:hover {
+    background: #a70638;
+}

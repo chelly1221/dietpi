@@ -1,0 +1,83 @@
+/* 전체화면 모드 활성화 시 body 스타일 */
+body.smm-fullscreen-active {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* 스크롤바 숨기기 (선택사항) */
+body.smm-fullscreen-active::-webkit-scrollbar {
+    display: none;
+}
+
+body.smm-fullscreen-active {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 테마별 공통 요소 오버라이드 */
+body.smm-fullscreen-active .site,
+body.smm-fullscreen-active .wrapper,
+body.smm-fullscreen-active .container,
+body.smm-fullscreen-active .container-fluid,
+body.smm-fullscreen-active #page,
+body.smm-fullscreen-active #wrapper {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 인기 테마별 특정 선택자 */
+/* Twenty Twenty-One, Twenty Twenty-Two, Twenty Twenty-Three */
+body.smm-fullscreen-active .wp-site-blocks,
+body.smm-fullscreen-active .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+/* Astra */
+body.smm-fullscreen-active .ast-container {
+    max-width: none !important;
+    padding: 0 !important;
+}
+
+/* GeneratePress */
+body.smm-fullscreen-active .grid-container {
+    max-width: none !important;
+    padding: 0 !important;
+}
+
+/* OceanWP */
+body.smm-fullscreen-active #wrap {
+    padding: 0 !important;
+}
+
+body.smm-fullscreen-active .container {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+}
+
+/* Elementor */
+body.smm-fullscreen-active .elementor-section-wrap {
+    margin: 0 !important;
+}
+
+body.smm-fullscreen-active .elementor-container {
+    max-width: none !important;
+}
+
+/* 전체화면에서 숨길 요소들 */
+body.smm-fullscreen-active .site-header,
+body.smm-fullscreen-active .site-footer,
+body.smm-fullscreen-active #masthead,
+body.smm-fullscreen-active #colophon,
+body.smm-fullscreen-active header:not(.smm-sidebar-header),
+body.smm-fullscreen-active footer,
+body.smm-fullscreen-active .navbar,
+body.smm-fullscreen-active .navigation,
+body.smm-fullscreen-active .breadcrumbs,
+body.smm-fullscreen-active .page-title {
+    display: none !important;
+}

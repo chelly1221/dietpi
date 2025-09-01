@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  monitoring-api:
+    build: .
+    container_name: system-monitoring-api
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      # Mount these for accurate disk statistics
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc:/host/etc:ro
+    privileged: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M

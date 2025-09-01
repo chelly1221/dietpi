@@ -1,0 +1,471 @@
+/* Modern Frontend styles for Version Notice Plugin */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* CSS Variables for easy customization */
+:root {
+    --vn-primary: #a70638;
+    --vn-primary-dark: #8a0230;
+    --vn-primary-light: #d91850;
+    --vn-gradient-start: #a70638;
+    --vn-gradient-end: #d91850;
+    --vn-bg-primary: #ffffff;
+    --vn-bg-secondary: #fafafa;
+    --vn-text-primary: #1a1a1a;
+    --vn-text-secondary: #666;
+    --vn-border: rgba(0, 0, 0, 0.08);
+    --vn-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --vn-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --vn-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+    --vn-radius: 16px;
+    --vn-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Main wrapper with clean design */
+.version-log-wrapper-kac {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--vn-bg-primary);
+    padding: 3rem;
+    border-radius: var(--vn-radius);
+    max-width: 900px;
+    margin: 3rem auto;
+    box-shadow: var(--vn-shadow-lg);
+    border: 1px solid var(--vn-border);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Title with gradient text */
+.version-log-wrapper-kac .version-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--vn-gradient-start) 0%, var(--vn-gradient-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    position: relative;
+    z-index: 1;
+}
+
+/* Animated underline */
+.version-log-wrapper-kac .version-title::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--vn-gradient-start), var(--vn-gradient-end));
+    border-radius: 2px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: translateX(-50%) scaleX(1); }
+    50% { opacity: 0.8; transform: translateX(-50%) scaleX(1.2); }
+}
+
+.version-log-wrapper-kac .version-subtitle {
+    font-size: 1.125rem;
+    color: var(--vn-text-secondary);
+    margin-bottom: 3rem;
+    text-align: center;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+/* Section styling */
+.version-section {
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+/* Month header with modern design */
+.version-log-wrapper-kac .version-month {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--vn-primary);
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-left: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Animated dot indicator */
+.version-log-wrapper-kac .version-month::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    background: var(--vn-gradient-start);
+    border-radius: 50%;
+    animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* Month header line */
+.version-log-wrapper-kac .version-month::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--vn-border) 0%, transparent 100%);
+}
+
+/* Version entry with enhanced interactivity */
+.version-log-wrapper-kac details.version-entry {
+    background: var(--vn-bg-secondary);
+    border: 1px solid var(--vn-border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    padding: 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    transform-origin: top center;
+}
+
+/* Hover effect */
+.version-log-wrapper-kac details.version-entry:hover {
+    background: var(--vn-bg-primary);
+    box-shadow: var(--vn-shadow-md);
+    transform: translateY(-2px);
+    border-color: rgba(167, 6, 56, 0.2);
+}
+
+/* Open state with expansion effect */
+.version-log-wrapper-kac details.version-entry[open] {
+    background: var(--vn-bg-primary);
+    box-shadow: var(--vn-shadow-lg);
+    border-color: rgba(167, 6, 56, 0.3);
+    transform: scale(1.02);
+    margin-bottom: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Summary styling with smooth transitions */
+.version-log-wrapper-kac details.version-entry summary {
+    padding: 0.6rem;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    color: var(--vn-text-primary);
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    list-style: none;
+    position: relative;
+}
+
+/* Summary hover state */
+.version-log-wrapper-kac details.version-entry summary:hover {
+    padding-left: 0.75rem;
+    color: var(--vn-primary);
+}
+
+/* Custom arrow indicator with rotation */
+.version-log-wrapper-kac details.version-entry summary::before {
+    content: '▶';
+    position: absolute;
+    right: 1.5rem;
+    color: var(--vn-primary);
+    font-size: 0.75rem;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.version-log-wrapper-kac details.version-entry[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* Remove default marker */
+.version-log-wrapper-kac details.version-entry summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Version tag with gradient and scale effect */
+.version-log-wrapper-kac .version-tag {
+    background: linear-gradient(135deg, var(--vn-gradient-start), var(--vn-gradient-end));
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 6px rgba(167, 6, 56, 0.3);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: transform 0.3s ease;
+}
+
+.version-log-wrapper-kac details.version-entry[open] .version-tag {
+    transform: scale(1.05);
+}
+
+/* Content area with expansion animation */
+.version-log-wrapper-kac details.version-entry[open] summary {
+    border-bottom: 1px solid var(--vn-border);
+    margin-bottom: 0;
+    background: rgba(167, 6, 56, 0.02);
+}
+
+.version-log-wrapper-kac ul {
+    margin: 0;
+    padding: 1.5rem 1.5rem 1.25rem 2.5rem;
+    list-style: none;
+    animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.version-log-wrapper-kac li {
+    position: relative;
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+    font-size: 0.9375rem;
+    color: var(--vn-text-primary);
+    padding-left: 1.25rem;
+    transition: all 0.3s ease;
+    opacity: 0;
+    animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Stagger animation for list items */
+.version-log-wrapper-kac li:nth-child(1) { animation-delay: 0.1s; }
+.version-log-wrapper-kac li:nth-child(2) { animation-delay: 0.15s; }
+.version-log-wrapper-kac li:nth-child(3) { animation-delay: 0.2s; }
+.version-log-wrapper-kac li:nth-child(4) { animation-delay: 0.25s; }
+.version-log-wrapper-kac li:nth-child(5) { animation-delay: 0.3s; }
+.version-log-wrapper-kac li:nth-child(n+6) { animation-delay: 0.35s; }
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Custom bullet points */
+.version-log-wrapper-kac li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--vn-primary);
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1.4;
+}
+
+/* Hover effect on list items */
+.version-log-wrapper-kac li:hover {
+    color: var(--vn-primary);
+    transform: translateX(4px);
+}
+
+/* Dev table styling */
+.version-log-wrapper-kac table.dev-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    font-size: 0.9375rem;
+    background: var(--vn-bg-primary);
+    border: 1px solid var(--vn-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--vn-shadow-sm);
+}
+
+.version-log-wrapper-kac table.dev-table td {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--vn-border);
+    vertical-align: middle;
+    transition: var(--vn-transition);
+}
+
+.version-log-wrapper-kac table.dev-table tr:hover td {
+    background-color: rgba(167, 6, 56, 0.02);
+}
+
+.version-log-wrapper-kac table.dev-table tr:last-child td {
+    border-bottom: none;
+}
+
+.version-log-wrapper-kac table.dev-table td:first-child {
+    font-weight: 600;
+    color: var(--vn-primary);
+    background-color: rgba(167, 6, 56, 0.04);
+    width: 40%;
+}
+
+/* Loading animation */
+.version-log-wrapper-kac.loading {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 1000px 100%;
+}
+
+/* Container expansion animation */
+@keyframes expandContainer {
+    from {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        max-height: 1000px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes collapseContainer {
+    from {
+        max-height: 1000px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Details content wrapper for animation */
+.version-log-wrapper-kac details.version-entry > *:not(summary) {
+    animation: expandContainer 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    overflow: hidden;
+}
+
+.version-log-wrapper-kac details.version-entry:not([open]) > *:not(summary) {
+    animation: collapseContainer 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    max-height: 0;
+    opacity: 0;
+}
+
+/* Responsive design */
+@media screen and (max-width: 768px) {
+    .version-log-wrapper-kac {
+        padding: 2rem 1.5rem;
+        margin: 2rem 1rem;
+        border-radius: 12px;
+    }
+    
+    .version-log-wrapper-kac .version-title {
+        font-size: 2rem;
+    }
+    
+    .version-log-wrapper-kac .version-subtitle {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .version-log-wrapper-kac .version-month {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    .version-log-wrapper-kac details.version-entry summary {
+        padding: 1rem 1.25rem;
+        font-size: 1rem;
+    }
+    
+    .version-log-wrapper-kac ul {
+        padding: 1.25rem 1.25rem 1rem 2rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .version-log-wrapper-kac {
+        padding: 1.5rem 1rem;
+        margin: 1rem 0.5rem;
+    }
+    
+    .version-log-wrapper-kac .version-title {
+        font-size: 1.75rem;
+    }
+    
+    .version-log-wrapper-kac details.version-entry summary {
+        padding: 0.875rem 1rem;
+        font-size: 0.9375rem;
+        gap: 0.5rem;
+    }
+    
+    .version-log-wrapper-kac .version-tag {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+    }
+    
+    .version-log-wrapper-kac li {
+        font-size: 0.875rem;
+        margin-bottom: 0.625rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .version-log-wrapper-kac {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .version-log-wrapper-kac details.version-entry {
+        border: 1px solid #ddd;
+        page-break-inside: avoid;
+    }
+    
+    .version-log-wrapper-kac details.version-entry[open] {
+        display: block;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .version-log-wrapper-kac {
+        border-width: 2px;
+    }
+    
+    .version-log-wrapper-kac details.version-entry {
+        border-width: 2px;
+    }
+    
+    .version-log-wrapper-kac .version-tag {
+        border: 2px solid currentColor;
+    }
+}

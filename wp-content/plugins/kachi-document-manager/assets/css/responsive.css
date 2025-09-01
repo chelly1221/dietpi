@@ -1,0 +1,542 @@
+/* 3chan PDF Manager - Responsive Design & Animations
+   ================================================== */
+
+/* ===== Animations ===== */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ===== Bird Animation ===== */
+.bird-animation-wrapper {
+  position: relative;
+  height: 100px;
+  overflow: hidden;
+  margin-top: 15px;
+  margin-bottom: 0;
+  width: 100%;
+  /* Mask the left side to ensure birds don't show before entering viewport */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 100%);
+}
+
+.bird {
+  background-image: url('../images/bird.svg?v=2');
+  filter: none;
+  background-size: auto 100%;
+  width: 88px;
+  height: 125px;
+  will-change: background-position;
+  animation-name: fly-cycle;
+  animation-timing-function: steps(10);
+  animation-iteration-count: infinite;
+}
+
+.bird-one { animation-duration: 0.8s; }
+.bird-two { animation-duration: 0.7s; }
+.bird-three { animation-duration: 0.9s; }
+.bird-four { animation-duration: 0.85s; }
+.bird-five { animation-duration: 0.75s; }
+.bird-six { animation-duration: 0.82s; }
+.bird-seven { animation-duration: 0.78s; }
+.bird-eight { animation-duration: 0.88s; }
+.bird-nine { animation-duration: 0.92s; }
+.bird-ten { animation-duration: 0.72s; }
+
+.bird-container {
+  position: absolute;
+  top: -35px;
+  left: -100px; /* Changed from -30px to ensure birds start offscreen */
+  transform: scale(0.3) translateX(-200px); /* Added initial translateX to push further left */
+  will-change: transform;
+  animation-name: fly-right-one;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  z-index: 10;
+  opacity: 0; /* Start invisible */
+  animation-fill-mode: forwards; /* Maintain animation state */
+}
+
+/* Ensure different starting positions for each bird */
+.bird-container-one { 
+  animation-duration: 15s; 
+  animation-delay: 0s; 
+  left: -150px;
+}
+.bird-container-two { 
+  animation-duration: 16s; 
+  animation-delay: 0.5s; 
+  left: -200px;
+}
+.bird-container-three { 
+  animation-duration: 14s; 
+  animation-delay: 4s; 
+  left: -180px;
+}
+.bird-container-four { 
+  animation-duration: 15.5s; 
+  animation-delay: 5s; 
+  left: -220px;
+}
+.bird-container-five { 
+  animation-duration: 14.5s; 
+  animation-delay: 1.5s; 
+  left: -170px;
+}
+.bird-container-six { 
+  animation-duration: 16.5s; 
+  animation-delay: 2.5s; 
+  left: -190px;
+}
+.bird-container-seven { 
+  animation-duration: 13.5s; 
+  animation-delay: 3.2s; 
+  left: -160px;
+}
+.bird-container-eight { 
+  animation-duration: 17s; 
+  animation-delay: 1.8s; 
+  left: -210px;
+}
+.bird-container-nine { 
+  animation-duration: 15.2s; 
+  animation-delay: 2.8s; 
+  left: -175px;
+}
+.bird-container-ten { 
+  animation-duration: 14.8s; 
+  animation-delay: 3.5s; 
+  left: -195px;
+}
+
+@keyframes fly-cycle {
+  100% { background-position: -900px 0; }
+}
+
+/* Updated animation to include opacity */
+@keyframes fly-right-one {
+  0% { 
+    transform: scale(0.3) translateX(-200px) translateY(20px); 
+    opacity: 0;
+  }
+  1% { 
+    opacity: 1; /* Quickly fade in once animation starts */
+  }
+  10% { 
+    transform: translateY(25px) translateX(10vw) scale(0.4); 
+    opacity: 1;
+  }
+  20% { 
+    transform: translateY(20px) translateX(30vw) scale(0.5); 
+    opacity: 1;
+  }
+  30% { 
+    transform: translateY(30px) translateX(50vw) scale(0.6); 
+    opacity: 1;
+  }
+  40% { 
+    transform: translateY(25px) translateX(70vw) scale(0.6); 
+    opacity: 1;
+  }
+  50% { 
+    transform: translateY(20px) translateX(90vw) scale(0.6); 
+    opacity: 1;
+  }
+  60%, 100% { 
+    transform: translateY(20px) translateX(110vw) scale(0.6); 
+    opacity: 1;
+  }
+}
+
+/* ===== Responsive Breakpoints ===== */
+
+/* Large Desktop */
+@media (min-width: 1400px) {
+  :root {
+    --sidebar-width: 400px;
+  }
+}
+
+/* Desktop to Tablet Transition */
+@media (max-width: 1200px) {
+  :root {
+    --sidebar-width: 300px;
+  }
+  
+  .pdf-manager-main {
+    grid-template-columns: minmax(var(--sidebar-min-width), 35%) 1fr;
+  }
+  
+  .modal-content {
+    max-width: 90%;
+  }
+}
+
+/* Tablet Landscape */
+@media (max-width: 968px) {
+  /* Switch to vertical layout */
+  .pdf-manager-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: auto;
+    width: 100vw;
+  }
+  
+  .upload-section {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    height: auto;
+    max-height: 50vh;
+  }
+  
+  .document-section {
+    height: auto;
+    min-height: 50vh;
+  }
+  
+  /* Adjust modals */
+  .pdf-margin-modal .modal-content {
+    width: 95%;
+  }
+  
+  .page-viewer-modal .modal-content {
+    width: 95%;
+    height: 85vh;
+  }
+}
+
+/* Tablet Portrait & Mobile */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 60px;
+    --control-height: 32px;
+    --spacing-lg: 20px;
+    --spacing-xl: 24px;
+  }
+  
+  /* Container adjustments */
+  .pdf-manager-container {
+    padding: 0;
+  }
+  
+  /* Header adjustments */
+  .pdf-manager-header {
+    padding: 12px 15px;
+  }
+  
+  .pdf-manager-title {
+    font-size: 1.5rem;
+  }
+  
+  .pdf-manager-subtitle {
+    display: none;
+  }
+  
+  /* Section headers */
+  .section-header {
+    padding: 12px 15px;
+  }
+  
+  .section-header h2 {
+    font-size: var(--font-size-lg);
+  }
+  
+  /* Search and filter */
+  .search-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .search-input-wrapper {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .filter-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  /* Filter panel - mobile fullscreen */
+  .filter-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Modal adjustments */
+  .modal {
+    padding: 0;
+  }
+  
+  .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .modal-header,
+  .modal-footer {
+    padding: 12px 15px;
+  }
+  
+  /* Form elements */
+  .upload-dropzone {
+    padding: 20px;
+  }
+  
+  .upload-icon {
+    font-size: 2rem;
+  }
+  
+  /* File preview */
+  .file-preview-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Buttons */
+  .list-actions {
+    padding: 6px 15px;
+  }
+  
+  /* Bird animation adjustments for mobile */
+  .bird-container {
+    left: -150px; /* Ensure birds start offscreen on mobile too */
+    transform: scale(0.25) translateX(-300px);
+  }
+  
+  .bird {
+    width: 66px;
+    height: 94px;
+  }
+  
+  @keyframes fly-right-one {
+    0% { 
+      transform: scale(0.25) translateX(-300px) translateY(20px); 
+      opacity: 0;
+    }
+    1% { 
+      opacity: 1;
+    }
+    /* Rest of keyframes adjusted for mobile scale */
+    10% { transform: translateY(25px) translateX(10vw) scale(0.3); opacity: 1; }
+    20% { transform: translateY(20px) translateX(30vw) scale(0.35); opacity: 1; }
+    30% { transform: translateY(30px) translateX(50vw) scale(0.4); opacity: 1; }
+    40% { transform: translateY(25px) translateX(70vw) scale(0.4); opacity: 1; }
+    50% { transform: translateY(20px) translateX(90vw) scale(0.4); opacity: 1; }
+    60%, 100% { transform: translateY(20px) translateX(110vw) scale(0.4); opacity: 1; }
+  }
+  
+  /* Document list */
+  .document-list li {
+    padding: 8px 15px;
+  }
+  
+  /* Reduce padding on mobile */
+  .upload-form,
+  .search-filter-bar,
+  .pagination-controls {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  /* Typography */
+  .pdf-manager-title {
+    font-size: 1.3rem;
+  }
+  
+  .title-icon {
+    font-size: 1.3rem;
+  }
+  
+  /* Buttons and actions */
+  .list-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .list-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .confirm-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Document list */
+  .document-list li {
+    padding: 8px 15px;
+    font-size: var(--font-size-sm);
+  }
+  
+  /* Viewer controls */
+  .viewer-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .page-navigation {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Bird animation for small screens */
+  .bird-container {
+    transform: scale(0.25) translateX(-100px);
+  }
+  
+  .bird-animation-wrapper {
+    height: 80px;
+  }
+  
+  /* Tags */
+  .tag-pill {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+  }
+  
+  /* Pagination */
+  .pagination-controls {
+    gap: 8px;
+  }
+  
+  .pagination-btn {
+    padding: 4px 8px;
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* WordPress Admin Bar Adjustments */
+@media screen and (max-width: 782px) {
+  body.admin-bar .pdf-manager-header {
+    top: 46px;
+  }
+  
+  body.admin-bar .pdf-manager-main {
+    padding-top: calc(var(--header-height) + 46px);
+  }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .pdf-manager-header,
+  .upload-section,
+  .search-filter-bar,
+  .list-actions,
+  .pagination-controls,
+  .modal {
+    display: none !important;
+  }
+  
+  .pdf-manager-container {
+    width: 100%;
+    height: auto;
+    background: white;
+  }
+  
+  .document-section {
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    border: none;
+  }
+  
+  .document-list {
+    max-height: none;
+  }
+  
+  .document-list li {
+    page-break-inside: avoid;
+  }
+}
+
+/* ===== High Contrast Mode ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #8B0000;
+    --text-primary: #000;
+    --bg-primary: #fff;
+    --border-color: #000;
+  }
+  
+  .btn-primary {
+    border: 2px solid currentColor;
+  }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .bird-animation-wrapper {
+    display: none;
+  }
+}

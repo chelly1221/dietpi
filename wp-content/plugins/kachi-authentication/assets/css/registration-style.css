@@ -1,0 +1,217 @@
+/* KAC Registration Styles - 회원가입 관련 스타일 */
+
+/* 회원가입 폼 컨테이너 */
+.kac-register-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 500px;
+    z-index: 999;
+}
+
+/* 회원가입 폼 스타일 */
+#kac-register-form {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+}
+
+#kac-register-form .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+#kac-register-form label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #333;
+}
+
+#kac-register-form input,
+#kac-register-form select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+#kac-register-form button {
+    background: #a70638;
+    color: #fff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+}
+
+#kac-register-form button:hover {
+    background: #8c052f;
+}
+
+#kac-register-form button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* 비밀번호 토글 스타일 */
+.password-wrap {
+    position: relative;
+    display: block;
+}
+
+.password-wrap input {
+    width: 100%;
+    padding-right: 36px;
+    box-sizing: border-box;
+}
+
+.password-wrap .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #777;
+    z-index: 2;
+}
+
+.password-wrap .toggle-password:hover {
+    color: #a70638;
+}
+
+.password-wrap input::placeholder {
+    color: #999;
+    opacity: 1;
+    font-size: 13px;
+}
+
+/* 폼 간격 조정 */
+#kac-register-form > p {
+    margin-top: 0px;
+    margin-bottom: 5px;
+}
+
+#kac-register-form > p:nth-child(5) {
+    margin-bottom: 10px;
+}
+
+#kac-register-form > p:nth-child(9) {
+    margin-bottom: 0px;	
+}
+
+/* 승인 대기 컨테이너 */
+.kac-approval-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 600px;
+    z-index: 999;
+}
+
+/* 승인 대기 안내 스타일 */
+.approval-message-box {
+    max-width: 500px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-left: 6px solid #a70638;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.approval-message-box h2 {
+    font-size: 26px;
+    color: #a70638;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.contact-box {
+    display: inline-block;
+    padding: 12px 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    font-size: 16px;
+    color: #444;
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+.contact-box:hover {
+    background-color: #fff4f7;
+    border-color: #a70638;
+    color: #a70638;
+    transition: all 0.3s ease;
+}
+
+.back-button {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 10px 20px;
+    background-color: #a70638;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #8c052f;
+    color: white;
+}
+
+figure.wp-block-image {
+    margin-top: 40px;
+    text-align: center;
+}
+
+/* 배경 이미지 스타일 (회원가입 완료 페이지) */
+/* 이제 동적으로 처리되므로 이 부분은 제거하거나 기본값으로만 유지 */
+body.kac-register-complete-page {
+    /* 배경은 이제 PHP에서 동적으로 처리됨 */
+}
+
+/* 반응형 디자인 */
+@media (max-width: 600px) {
+    .kac-register-container,
+    .kac-approval-container {
+        padding: 0 15px;
+    }
+    
+    #kac-register-form {
+        padding: 20px;
+    }
+    
+    .approval-message-box {
+        padding: 30px 20px;
+    }
+    
+    .approval-message-box h2 {
+        font-size: 22px;
+    }
+}
+
+/* 스크롤 방지 (옵션) */
+body.kac-register-page,
+body.kac-register-complete-page {
+    overflow: hidden;
+}
