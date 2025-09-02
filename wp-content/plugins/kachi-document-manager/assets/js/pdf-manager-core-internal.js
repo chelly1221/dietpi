@@ -184,20 +184,20 @@
             // 원본 content의 복사본을 만들어 처리
             let displayContent = content;
             
-            // Regular expression to find image URLs with :8001/images pattern (plural)
-            const imageUrlPattern = /(https?:\/\/[^:]+):8001\/images\/([a-zA-Z0-9_-]+)/g;
+            // Regular expression to find image URLs with :8001/images pattern (plural) including file extensions
+            const imageUrlPattern = /(https?:\/\/[^:]+):8001\/images\/([a-zA-Z0-9_-]+\.[a-zA-Z]+)/g;
             
             // Replace image URLs with HTML img tags using proxy URLs for display only
-            displayContent = displayContent.replace(imageUrlPattern, (match, baseUrl, imageId) => {
-                // Reconstruct the full URL
-                const fullUrl = baseUrl + ':8001/images/' + imageId;
+            displayContent = displayContent.replace(imageUrlPattern, (match, baseUrl, imageFilename) => {
+                // Reconstruct the full URL with file extension
+                const fullUrl = baseUrl + ':8001/images/' + imageFilename;
                 const proxyUrl = this.createProxyImageUrl(fullUrl);
                 console.log('🖼️ Converting image URL to HTML img tag:', match, '→', proxyUrl);
                 return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy">`;
             });
             
-            // Also handle img tags with src attributes - updated for /images path
-            displayContent = displayContent.replace(/<img([^>]+)src=["']([^"']+:8001\/images\/[^"']+)["']([^>]*)>/gi, (match, before, imageUrl, after) => {
+            // Also handle img tags with src attributes - updated for /images path with file extensions
+            displayContent = displayContent.replace(/<img([^>]+)src=["']([^"']+:8001\/images\/[^"'\.]+\.[^"']+)["']([^>]*)>/gi, (match, before, imageUrl, after) => {
                 const proxyUrl = this.createProxyImageUrl(imageUrl);
                 return `<img ${before}src="${proxyUrl}" ${after}>`;
             });

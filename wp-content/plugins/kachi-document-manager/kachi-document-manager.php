@@ -3,7 +3,7 @@
  * Plugin Name: KACHI Document Manager - AI Document System (Internal Network Version)
  * Plugin URI: https://3chan.kr/plugins/kachi-document-manager
  * Description: KACHI 내부망 전용 AI 기반 PDF/DOCX/PPTX/HWPX 문서 업로드, 분할 저장 및 태그 관리 시스템
- * Version: 3.0.4
+ * Version: 3.0.5
  * Author: 3chan Development Team
  * Author URI: https://3chan.kr
  * License: GPL v2 or later
@@ -29,7 +29,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('THREECHAN_PDF_VERSION', '3.0.4');
+define('THREECHAN_PDF_VERSION', '3.0.5');
 define('THREECHAN_PDF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('THREECHAN_PDF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('THREECHAN_PDF_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -406,8 +406,15 @@ class ThreeChan_PDF_Manager {
         if ($status_code === 200) {
             echo $body;
         } else {
+            // Enhanced debugging for image proxy failures
+            error_log('3chan PDF Manager (Internal) - Image Proxy Failed:');
+            error_log('  - Status Code: ' . $status_code);
+            error_log('  - Headers: ' . print_r($headers, true));
+            error_log('  - Body Preview: ' . substr($body, 0, 500));
+            error_log('  - Requested URL: ' . $image_url);
+            
             header('HTTP/1.1 ' . $status_code);
-            echo 'Image not found';
+            echo 'Image not found (Status: ' . $status_code . ')';
         }
         
         exit;
