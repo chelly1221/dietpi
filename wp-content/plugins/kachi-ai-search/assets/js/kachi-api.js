@@ -961,24 +961,40 @@
         
         // URL 정리 함수 - 마크다운 문법 제거
         cleanImageUrl: function(url) {
-            // 마크다운 링크 문법 감지: filename](actual_url
-            const markdownMatch = url.match(/^[^)]+\]\((https?:\/\/[^)]+)\)$/);
+            // 마크다운 링크 문법 감지: filename](actual_url) - 추가 ']'도 처리
+            const markdownMatch = url.match(/^[^)]+\]\((https?:\/\/[^)]+)\)[\]]*$/);
             if (markdownMatch) {
-                console.log("🧹 Cleaning markdown URL:", url, "->", markdownMatch[1]);
-                return markdownMatch[1];
+                let cleanedUrl = markdownMatch[1];
+                // 추출한 URL 끝에도 ']'가 있을 수 있으므로 추가 정리
+                if (cleanedUrl.endsWith(']')) {
+                    cleanedUrl = cleanedUrl.slice(0, -1);
+                }
+                console.log("🧹 Cleaning markdown URL:", url, "->", cleanedUrl);
+                return cleanedUrl;
             }
             
             // 불완전한 마크다운 문법 감지: partial_url](actual_url
             const partialMarkdownMatch = url.match(/.*\]\((https?:\/\/[^)]+)$/);
             if (partialMarkdownMatch) {
-                console.log("🧹 Cleaning partial markdown URL:", url, "->", partialMarkdownMatch[1]);
-                return partialMarkdownMatch[1];
+                let cleanedUrl = partialMarkdownMatch[1];
+                // 추출한 URL 끝에도 ']'가 있을 수 있으므로 추가 정리
+                if (cleanedUrl.endsWith(']')) {
+                    cleanedUrl = cleanedUrl.slice(0, -1);
+                }
+                console.log("🧹 Cleaning partial markdown URL:", url, "->", cleanedUrl);
+                return cleanedUrl;
             }
             
             // http: -> http:// 수정
             if (url.startsWith('http:') && !url.startsWith('http://')) {
                 url = url.replace('http:', 'http://');
                 console.log("🧹 Fixed protocol:", url);
+            }
+            
+            // 끝에 ']' 문자가 있으면 제거
+            if (url.endsWith(']')) {
+                url = url.slice(0, -1);
+                console.log("🧹 Removed trailing ']':", url);
             }
             
             return url;
@@ -1044,12 +1060,15 @@
                 }
                 
                 // 마크다운 스타일 이미지 URL 패턴 우선 확인: something](http://host:8001/images/file)
-                const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
+                const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)\]]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
                 if (markdownMatch) {
-                    const originalImageUrl = markdownMatch[1];
+                    let originalImageUrl = markdownMatch[1];
                     console.log("🖼️ Found markdown image URL:", originalImageUrl);
+                    
+                    // URL 정리 (끝의 ']' 문자 제거 등)
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     
                     // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
@@ -1060,13 +1079,16 @@
                     return;
                 }
                 
-                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file)
-                const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s)]+/;
+                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 끝의 ']' 제외
+                const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s)\]]+/;
                 const normalMatch = line.match(normalImagePattern);
                 
                 if (normalMatch) {
-                    const originalImageUrl = normalMatch[0];
+                    let originalImageUrl = normalMatch[0];
                     console.log("🖼️ Found normal image URL:", originalImageUrl);
+                    
+                    // URL 정리 (끝의 ']' 문자 제거 등)
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     
                     // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
@@ -1090,8 +1112,8 @@
             const lines = text.split('\n');
             const processedLines = [];
             
-            // 이미지 URL 패턴 (backend API URLs)
-            const imageUrlPattern = /https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/;
+            // 이미지 URL 패턴 (backend API URLs) - 끝의 ']' 제외
+            const imageUrlPattern = /https?:\/\/[^\s\)\]]+:8001\/images\/[^\s\)\]]+/;
             
             lines.forEach(line => {
                 // 현재 줄에 이미지 URL이 포함되어 있는지 확인
@@ -1099,8 +1121,13 @@
                     // 이미지 URL 추출
                     const match = line.match(imageUrlPattern);
                     if (match) {
-                        const originalImageUrl = match[0];
-                        console.log("💾 Keeping original image URL for storage:", originalImageUrl);
+                        let originalImageUrl = match[0];
+                        console.log("💾 Found image URL for storage:", originalImageUrl);
+                        
+                        // URL 정리 (끝의 ']' 문자 제거 등)
+                        originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                        
+                        console.log("💾 Keeping cleaned original image URL for storage:", originalImageUrl);
                         
                         // 원본 URL로 이미지 태그 생성 (저장용)
                         processedLines.push(`<img src="${originalImageUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;">`);
