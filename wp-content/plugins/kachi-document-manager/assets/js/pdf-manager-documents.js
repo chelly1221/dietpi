@@ -49,15 +49,25 @@
             // 원본 content의 복사본을 만들어 처리
             let displayContent = content;
             
-            // Regular expression to find image URLs with :8001/images pattern (plural) including file extensions
+            // Pattern 1: URLs with file extensions (new format)
             const imageUrlPattern = /(https?:\/\/[^:]+):8001\/images\/([a-zA-Z0-9_-]+\.[a-zA-Z]+)/g;
             
-            // Replace image URLs with HTML img tags using proxy URLs for display only
+            // Pattern 2: URLs without file extensions (backward compatibility)
+            const imageUrlPatternLegacy = /(https?:\/\/[^:]+):8001\/images\/([a-zA-Z0-9_-]+)(?!\.[a-zA-Z]+)/g;
+            
+            // Replace image URLs with HTML img tags - new format with extensions
             displayContent = displayContent.replace(imageUrlPattern, (match, baseUrl, imageFilename) => {
-                // Reconstruct the full URL with file extension
                 const fullUrl = baseUrl + ':8001/images/' + imageFilename;
                 const proxyUrl = this.createProxyImageUrl(fullUrl);
-                console.log('🖼️ Converting image URL to HTML img tag:', match, '→', proxyUrl);
+                console.log('🖼️ Converting image URL (with ext) to HTML img tag:', match, '→', proxyUrl);
+                return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy">`;
+            });
+            
+            // Replace image URLs with HTML img tags - legacy format, add .png extension
+            displayContent = displayContent.replace(imageUrlPatternLegacy, (match, baseUrl, imageId) => {
+                const fullUrl = baseUrl + ':8001/images/' + imageId + '.png';
+                const proxyUrl = this.createProxyImageUrl(fullUrl);
+                console.log('🖼️ Converting legacy image URL to HTML img tag:', match, '→', proxyUrl);
                 return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy">`;
             });
             
