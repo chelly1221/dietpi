@@ -11,6 +11,10 @@ This is a WordPress installation with custom KACHI plugins for an internal organ
 - Internal API integration for organizational data
 - Custom plugins for authentication, document management, navigation, and user management
 
+### Git Repositories
+- **Frontend (WordPress)**: Repository `dietpi` on `master` branch (`/mnt/dietpi`)
+- **Backend (Haystack AI)**: Repository `haystack` on `master` branch (`/mnt/haystack`)
+
 ## Development Commands
 
 ### WordPress Development
@@ -46,6 +50,28 @@ python task_manager_sqlite.py     # Direct task manager operations
 # Container access
 docker exec -it haystack-app bash # Access application container
 docker exec -it vllm-server bash  # Access LLM server container
+```
+
+### Git Workflow
+```bash
+# Frontend WordPress (dietpi repository)
+cd /mnt/dietpi
+git status                        # Check status in dietpi repo
+git add .                         # Stage changes
+git commit -m "Your commit message"
+git push origin master           # Push to dietpi master branch
+
+# Backend Haystack AI (haystack repository)
+cd /mnt/haystack
+git status                        # Check status in haystack repo
+git add .                         # Stage changes
+git commit -m "Your commit message"
+git push origin master           # Push to haystack master branch
+
+# Working across both repositories
+# Remember: These are separate git repositories
+# Changes in /mnt/dietpi affect the dietpi repo
+# Changes in /mnt/haystack affect the haystack repo
 ```
 
 ### Debug Mode
