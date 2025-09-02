@@ -59,19 +59,19 @@ cd /mnt/dietpi
 git status                        # Check status in dietpi repo
 git add .                         # Stage changes
 git commit -m "Your commit message"
-git push origin master           # Push to dietpi master branch
+git push dietpi master           # Push to dietpi remote master branch
 
 # Backend Haystack AI (haystack repository)
 cd /mnt/haystack
 git status                        # Check status in haystack repo
 git add .                         # Stage changes
 git commit -m "Your commit message"
-git push origin master           # Push to haystack master branch
+git push haystack master         # Push to haystack remote master branch
 
 # Working across both repositories
-# Remember: These are separate git repositories
-# Changes in /mnt/dietpi affect the dietpi repo
-# Changes in /mnt/haystack affect the haystack repo
+# Remember: These are separate git repositories with custom remote names
+# Changes in /mnt/dietpi affect the dietpi repo (remote: dietpi)
+# Changes in /mnt/haystack affect the haystack repo (remote: haystack)
 ```
 
 ### Debug Mode
