@@ -3,7 +3,7 @@
  * Plugin Name: KACHI AI Search
  * Plugin URI: https://3chan.kr
  * Description: KACHI AI 기반 문서 검색 및 질의응답 시스템 - 프록시 API 지원
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: 3chan
  * Author URI: https://3chan.kr
  * License: GPL v2 or later
@@ -16,14 +16,14 @@ if (!defined('ABSPATH')) {
 }
 
 // 플러그인 상수 정의 - KACHI AI Search
-define('KACHI_AI_SEARCH_VERSION', '2.3.1');
+define('KACHI_AI_SEARCH_VERSION', '2.3.2');
 define('KACHI_AI_SEARCH_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('KACHI_AI_SEARCH_DB_VERSION', '1.0');
 
 // Legacy constants for backward compatibility
-define('KACHI_VERSION', '2.3.1');
+define('KACHI_VERSION', '2.3.2');
 define('KACHI_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_PLUGIN_BASENAME', plugin_basename(__FILE__));

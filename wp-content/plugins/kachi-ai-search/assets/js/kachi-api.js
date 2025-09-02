@@ -959,7 +959,32 @@
             });
         },
         
-        // 이미지 URL을 프록시 URL로 변환 - 개선된 버전
+        // URL 정리 함수 - 마크다운 문법 제거
+        cleanImageUrl: function(url) {
+            // 마크다운 링크 문법 감지: filename](actual_url
+            const markdownMatch = url.match(/^[^)]+\]\((https?:\/\/[^)]+)\)$/);
+            if (markdownMatch) {
+                console.log("🧹 Cleaning markdown URL:", url, "->", markdownMatch[1]);
+                return markdownMatch[1];
+            }
+            
+            // 불완전한 마크다운 문법 감지: partial_url](actual_url
+            const partialMarkdownMatch = url.match(/.*\]\((https?:\/\/[^)]+)$/);
+            if (partialMarkdownMatch) {
+                console.log("🧹 Cleaning partial markdown URL:", url, "->", partialMarkdownMatch[1]);
+                return partialMarkdownMatch[1];
+            }
+            
+            // http: -> http:// 수정
+            if (url.startsWith('http:') && !url.startsWith('http://')) {
+                url = url.replace('http:', 'http://');
+                console.log("🧹 Fixed protocol:", url);
+            }
+            
+            return url;
+        },
+        
+        // 이미지 URL을 프록시 URL로 변환 - 마크다운 처리 개선
         convertToProxyImageUrl: function(imageUrl) {
             // 이미 프록시 URL인 경우 그대로 반환
             if (imageUrl.includes('action=kachi_proxy_image')) {
@@ -972,35 +997,42 @@
                 return imageUrl;
             }
             
-            // API 서버의 이미지 URL 패턴 확인 (더 안전한 패턴)
-            const apiPattern = /:8001\/images\/([^?\s]+)/;
-            const match = imageUrl.match(apiPattern);
+            // URL 정리 (마크다운 문법 제거)
+            const cleanUrl = this.cleanImageUrl(imageUrl);
+            
+            // 정리된 URL이 유효한 http(s) URL인지 확인
+            if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                console.warn("⚠️ Invalid URL after cleaning:", cleanUrl);
+                return imageUrl;
+            }
+            
+            // API 서버의 이미지 URL 패턴 확인
+            const apiPattern = /:8001\/images\/([^?\s)]+)/;
+            const match = cleanUrl.match(apiPattern);
             
             if (match && match[1]) {
                 // 프록시 URL로 변환
                 const imagePath = match[1];
                 const proxyUrl = window.kachi_ajax?.ajax_url + 
                     '?action=kachi_proxy_image&path=' + encodeURIComponent(imagePath);
-                console.log("🖼️ Converting to proxy URL:", imageUrl, "->", proxyUrl);
+                console.log("🖼️ Converting to proxy URL:", cleanUrl, "->", proxyUrl);
                 return proxyUrl;
             }
             
-            // 매치하지 않으면 원본 반환
-            return imageUrl;
+            // 매치하지 않으면 정리된 URL 반환
+            console.warn("⚠️ No API pattern match for:", cleanUrl);
+            return cleanUrl;
         },
         
-        // 이미지 URL 처리 함수 - 표시용으로만 변환 (저장용이 아님) - 개선된 버전
+        // 이미지 URL 처리 함수 - 마크다운 링크 처리 개선
         processImageUrlsForDisplay: function(text) {
-            // 이미지 URL 패턴 (backend API URLs)
-            const imageUrlPattern = /:8001\/images\/[^\s\)]+/g;
-            
             // 이미 처리된 이미지는 다시 처리하지 않음
             if (text.includes('<img') && text.includes('action=kachi_proxy_image')) {
                 console.log("🖼️ Images already processed for display, skipping");
                 return text;
             }
             
-            // 줄 단위로 처리하여 빈 줄이나 이미 태그가 있는 줄은 건너뛰기
+            // 줄 단위로 처리
             const lines = text.split('\n');
             const processedLines = [];
             
@@ -1011,21 +1043,42 @@
                     return;
                 }
                 
-                // 현재 줄에 이미지 URL이 포함되어 있는지 확인
-                const matches = line.match(imageUrlPattern);
-                if (matches && matches.length > 0) {
-                    const originalImageUrl = 'http' + matches[0]; // http 부분을 다시 추가
-                    console.log("🖼️ Processing image URL for display:", originalImageUrl);
+                // 마크다운 스타일 이미지 URL 패턴 우선 확인: something](http://host:8001/images/file)
+                const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
+                const markdownMatch = line.match(markdownImagePattern);
+                
+                if (markdownMatch) {
+                    const originalImageUrl = markdownMatch[1];
+                    console.log("🖼️ Found markdown image URL:", originalImageUrl);
                     
-                    // 프록시 URL로 변환 (표시용으로만)
+                    // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
                     
-                    // 전체 줄을 이미지 태그로 교체 (프록시 URL 사용)
+                    // 전체 줄을 이미지 태그로 교체
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
                     processedLines.push(imageTag);
-                } else {
-                    processedLines.push(line);
+                    return;
                 }
+                
+                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file)
+                const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s)]+/;
+                const normalMatch = line.match(normalImagePattern);
+                
+                if (normalMatch) {
+                    const originalImageUrl = normalMatch[0];
+                    console.log("🖼️ Found normal image URL:", originalImageUrl);
+                    
+                    // 프록시 URL로 변환
+                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
+                    
+                    // 전체 줄을 이미지 태그로 교체
+                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
+                    processedLines.push(imageTag);
+                    return;
+                }
+                
+                // 이미지 URL이 없으면 원래 줄 그대로 유지
+                processedLines.push(line);
             });
             
             return processedLines.join('\n');
