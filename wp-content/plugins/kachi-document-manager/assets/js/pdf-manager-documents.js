@@ -63,7 +63,7 @@
             // Also handle img tags with src attributes
             displayContent = displayContent.replace(/<img([^>]+)src=["']([^"']+:8001\/image[^"']+)["']([^>]*)>/gi, (match, before, imageUrl, after) => {
                 const proxyUrl = this.createProxyImageUrl(imageUrl);
-                return `<img${before}src="${proxyUrl}"${after}>`;
+                return `<img ${before}src="${proxyUrl}" ${after}>`;
             });
             
             return displayContent;
@@ -73,15 +73,13 @@
         createProxyImageUrl: function(originalUrl) {
             const config = window.PDFManagerConfig;
             
-            // Create FormData for proxy request
-            const params = new URLSearchParams({
-                action: '3chan_proxy_image',
-                nonce: config.NONCE,
-                image_url: originalUrl
-            });
+            // Manually construct URL parameters to avoid double encoding
+            // URLSearchParams automatically encodes the image_url parameter
+            const encodedUrl = encodeURIComponent(originalUrl);
+            const params = `action=3chan_proxy_image&nonce=${config.NONCE}&image_url=${encodedUrl}`;
             
             // Return the proxy URL
-            return config.AJAX_URL + '?' + params.toString();
+            return config.AJAX_URL + '?' + params;
         },
 
         // Fetch stored files
