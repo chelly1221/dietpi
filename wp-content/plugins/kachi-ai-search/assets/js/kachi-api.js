@@ -603,7 +603,7 @@
             return html;
         },
         
-        // 스트림 버퍼 플러시 - 수식 감지 개선
+        // 스트림 버퍼 플러시 - 이미지 깜빡임 방지 개선
         tryFlushStreamBuffer: function(messageElement, isFinal = false) {
             // messageElement가 유효한지 확인
             if (!messageElement || !messageElement.querySelector) {
@@ -626,9 +626,8 @@
             
             // 최종 플러시인 경우 전체 내용을 포맷팅
             if (isFinal && KachiCore.streamBuffer) {
-                // 이미지 태그 수정 후 포맷팅
-                const fixedBuffer = this.fixImgTags(KachiCore.streamBuffer);
-                const formattedContent = this.formatResponse(fixedBuffer);
+                // 이미지 처리는 포맷팅 함수에서 한 번만 수행
+                const formattedContent = this.formatResponse(KachiCore.streamBuffer);
                 textElement.innerHTML = formattedContent;
                 KachiCore.streamBuffer = '';
                 return;
@@ -667,32 +666,54 @@
                             mathDetected = true;
                         }
                         
-                        // 이미지 태그가 있는지 확인
-                        const imgTagStart = displayText.lastIndexOf('<img');
-                        const imgTagEnd = displayText.lastIndexOf('>');
+                        // 이미지 태그 완성도 검사
+                        let safeDisplayText = displayText;
+                        const lastImgStart = displayText.lastIndexOf('<img');
+                        const lastImgEnd = displayText.lastIndexOf('>');
                         
-                        // 이미지 태그가 중간에 잘리지 않도록 처리
-                        if (imgTagStart !== -1 && (imgTagEnd === -1 || imgTagEnd < imgTagStart)) {
-                            // 이미지 태그가 완성되지 않았으면 이미지 태그 전까지만 표시
-                            const safeText = displayText.substring(0, imgTagStart);
-                            textElement.innerHTML = this.formatResponse(safeText);
-                        } else {
-                            // 안전하게 표시
-                            textElement.innerHTML = this.formatResponse(displayText);
-                            KachiCore.displayedLength += charsToAdd;
+                        // 미완성 이미지 태그가 있으면 해당 부분을 제외
+                        if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
+                            // 이미지 URL 패턴이 포함된 줄인지 확인
+                            const beforeImg = displayText.substring(0, lastImgStart);
+                            const afterImgStart = displayText.substring(lastImgStart);
                             
-                            // 수식이 감지되면 즉시 렌더링
-                            if (mathDetected) {
-                                this.renderMathInElement(messageElement);
-                                mathDetected = false;
+                            // 이미지 URL 패턴이 있는 전체 줄을 찾기
+                            const lines = beforeImg.split('\n');
+                            const currentLine = afterImgStart.split('\n')[0];
+                            
+                            // 현재 줄에 이미지 URL 패턴이 있는지 확인
+                            if (/https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/.test(beforeImg + currentLine)) {
+                                // 완전한 이미지 URL이 있으면 해당 줄 전체를 기다림
+                                const lastNewlineIndex = beforeImg.lastIndexOf('\n');
+                                safeDisplayText = lastNewlineIndex !== -1 ? beforeImg.substring(0, lastNewlineIndex + 1) : '';
+                            } else {
+                                // 단순히 미완성 태그만 제외
+                                safeDisplayText = beforeImg;
                             }
+                        }
+                        
+                        // 안전한 텍스트로 표시 (이미지 처리 없이)
+                        if (safeDisplayText.length > 0) {
+                            textElement.innerHTML = this.formatResponseWithoutImages(safeDisplayText);
+                            
+                            // 표시된 길이 업데이트는 실제 처리된 텍스트 기준
+                            if (safeDisplayText === displayText) {
+                                KachiCore.displayedLength += charsToAdd;
+                            }
+                        }
+                        
+                        // 수식이 감지되면 즉시 렌더링
+                        if (mathDetected) {
+                            this.renderMathInElement(messageElement);
+                            mathDetected = false;
                         }
                         
                         // 다음 글자 표시를 위한 타이머
                         KachiCore.typeTimer = setTimeout(typeNextChars, 30);
                     } else {
-                        // 모든 글자를 표시했으면 커서 제거
-                        textElement.innerHTML = this.formatResponse(KachiCore.streamBuffer);
+                        // 모든 글자를 표시했으면 최종 포맷팅 (이미지 포함)
+                        const finalContent = this.formatResponse(KachiCore.streamBuffer);
+                        textElement.innerHTML = finalContent;
                         KachiCore.isCharStreaming = false;
                         
                         // 마지막 수식 렌더링
@@ -703,6 +724,101 @@
                 // 타이핑 시작
                 typeNextChars();
             }
+        },
+        
+        // 답변 포맷팅 (이미지 처리 제외) - 스트리밍 중 사용
+        formatResponseWithoutImages: function(text) {
+            // plaintext와 html 코드 블록 문법 제거
+            text = text.replace(/```plaintext\s*([\s\S]*?)```/g, '$1');
+            text = text.replace(/```html\s*([\s\S]*?)```/g, '$1');
+            
+            // LaTeX 수식 보호를 위한 플레이스홀더 처리
+            const mathPlaceholders = {};
+            let mathCounter = 0;
+            
+            // 블록 수식 (\[...\]) 보호
+            text = text.replace(/\\\[([\s\S]*?)\\\]/g, function(match, equation) {
+                const placeholder = `__MATH_BLOCK_${mathCounter++}__`;
+                mathPlaceholders[placeholder] = `<div class="math-block">\\[${equation}\\]</div>`;
+                return placeholder;
+            });
+            
+            // 인라인 수식 (\(...\)) 보호
+            text = text.replace(/\\\(([\s\S]*?)\\\)/g, function(match, equation) {
+                const placeholder = `__MATH_INLINE_${mathCounter++}__`;
+                mathPlaceholders[placeholder] = `<span class="math-inline">\\(${equation}\\)</span>`;
+                return placeholder;
+            });
+            
+            // 이미지 URL은 처리하지 않음 (스트리밍 중 깜빡임 방지)
+            
+            // --- 수평선을 <hr>로 변환 (독립된 줄에 있는 경우)
+            text = text.replace(/^---+$/gm, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">');
+            
+            // # 헤딩을 <h2>로 변환 (줄 시작에 있는 경우만)
+            text = text.replace(/^#\s+(.+)$/gm, '<h2 style="margin-top: 28px; margin-bottom: 16px; color: #1a1a1a; font-size: 1.8em; font-weight: 700; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">$1</h2>');
+            
+            // ## 헤딩을 <h3>로 변환 (줄 시작에 있는 경우만)
+            text = text.replace(/^##\s+(.+)$/gm, '<h3 style="margin-top: 24px; margin-bottom: 12px; color: #2d2d2d; font-size: 1.4em; font-weight: 600;">$1</h3>');
+            
+            // ### 헤딩을 <h4>로 변환 (줄 시작에 있는 경우만)
+            text = text.replace(/^###\s+(.+)$/gm, '<h4 style="margin-top: 20px; margin-bottom: 10px; color: #333; font-size: 1.1em; font-weight: 600;">$1</h4>');
+            
+            // #### 헤딩을 <h5>로 변환 (줄 시작에 있는 경우만)
+            text = text.replace(/^####\s+(.+)$/gm, '<h5 style="margin-top: 16px; margin-bottom: 8px; color: #333; font-size: 1em; font-weight: 600;">$1</h5>');
+            
+            // `code` 패턴을 <code>code</code>로 변환 (백틱 처리 - 3단어 이하만)
+            text = text.replace(/`([^`]+)`/g, function(match, code) {
+                // 공백으로 분리하여 단어 수 계산
+                const wordCount = code.trim().split(/\s+/).length;
+                
+                // 3단어 이하인 경우만 코드 스타일 적용
+                if (wordCount <= 3) {
+                    return '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 0.9em; color: #d73a49;">' + code + '</code>';
+                } else {
+                    // 3단어 초과인 경우 백틱을 그대로 유지
+                    return '`' + code + '`';
+                }
+            });
+            
+            // **text** 패턴을 <strong>text</strong>으로 변환
+            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // *text* 패턴도 <strong>text</strong>으로 변환 (single asterisk)
+            text = text.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<strong>$1</strong>');
+            
+            // 숫자로 시작하는 리스트 항목 처리 - <br> 태그가 이미 없는 경우에만 추가
+            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(\d{1,2}\.\s)/gm, '<br>$1');
+            
+            // 불릿 포인트 처리 - <br> 태그가 이미 없는 경우에만 추가
+            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n([-•▪]\s)/gm, '<br>$1');
+            
+            // ▶ 기호 처리 - <br> 태그가 이미 없는 경우에만 추가
+            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(▶\s)/gm, '<br>$1');
+            
+            // 줄바꿈을 <br>로 변환
+            text = text.replace(/\n/g, '<br>');
+            
+            // 연속된 <br> 정리
+            text = text.replace(/(<br>){3,}/g, '<br><br>');
+            
+            // h2, h3, h4, h5 태그 주변의 불필요한 <br> 제거
+            text = text.replace(/<\/h([2345])>(<br>)+/g, '</h$1>');
+            text = text.replace(/(<br>)+<h([2345])/g, '<h$2');
+            
+            // hr 태그 주변의 불필요한 <br> 제거
+            text = text.replace(/<hr([^>]*)>(<br>)+/g, '<hr$1>');
+            text = text.replace(/(<br>)+<hr/g, '<hr');
+            
+            // 문서 시작 부분의 <br> 제거
+            text = text.replace(/^(<br>)+/, '');
+            
+            // 수식 플레이스홀더를 원래 수식으로 복원
+            Object.keys(mathPlaceholders).forEach(placeholder => {
+                text = text.replace(new RegExp(placeholder, 'g'), mathPlaceholders[placeholder]);
+            });
+            
+            return text;
         },
         
         // 답변 포맷팅
@@ -843,22 +959,29 @@
             });
         },
         
-        // 이미지 URL을 프록시 URL로 변환
+        // 이미지 URL을 프록시 URL로 변환 - 개선된 버전
         convertToProxyImageUrl: function(imageUrl) {
             // 이미 프록시 URL인 경우 그대로 반환
             if (imageUrl.includes('action=kachi_proxy_image')) {
+                console.log("🖼️ Already proxy URL, skipping conversion:", imageUrl);
                 return imageUrl;
             }
             
-            // API 서버의 이미지 URL 패턴 확인
-            const apiUrl = window.kachiApiUrl || 'http://chelly.kr:8001';
-            const imagePattern = new RegExp(`${apiUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/images/(.+)`);
-            const match = imageUrl.match(imagePattern);
+            // 빈 URL이거나 data: URL인 경우 그대로 반환
+            if (!imageUrl || imageUrl.startsWith('data:')) {
+                return imageUrl;
+            }
+            
+            // API 서버의 이미지 URL 패턴 확인 (더 안전한 패턴)
+            const apiPattern = /:8001\/images\/([^?\s]+)/;
+            const match = imageUrl.match(apiPattern);
             
             if (match && match[1]) {
                 // 프록시 URL로 변환
+                const imagePath = match[1];
                 const proxyUrl = window.kachi_ajax?.ajax_url + 
-                    '?action=kachi_proxy_image&path=' + encodeURIComponent(match[1]);
+                    '?action=kachi_proxy_image&path=' + encodeURIComponent(imagePath);
+                console.log("🖼️ Converting to proxy URL:", imageUrl, "->", proxyUrl);
                 return proxyUrl;
             }
             
@@ -866,32 +989,40 @@
             return imageUrl;
         },
         
-        // 이미지 URL 처리 함수 - 표시용으로만 변환 (저장용이 아님)
+        // 이미지 URL 처리 함수 - 표시용으로만 변환 (저장용이 아님) - 개선된 버전
         processImageUrlsForDisplay: function(text) {
-            // 줄 단위로 분리
+            // 이미지 URL 패턴 (backend API URLs)
+            const imageUrlPattern = /:8001\/images\/[^\s\)]+/g;
+            
+            // 이미 처리된 이미지는 다시 처리하지 않음
+            if (text.includes('<img') && text.includes('action=kachi_proxy_image')) {
+                console.log("🖼️ Images already processed for display, skipping");
+                return text;
+            }
+            
+            // 줄 단위로 처리하여 빈 줄이나 이미 태그가 있는 줄은 건너뛰기
             const lines = text.split('\n');
             const processedLines = [];
             
-            // 이미지 URL 패턴 (backend API URLs)
-            const imageUrlPattern = /https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/;
-            
             lines.forEach(line => {
+                // 이미 img 태그가 있는 줄은 건너뛰기
+                if (line.includes('<img')) {
+                    processedLines.push(line);
+                    return;
+                }
+                
                 // 현재 줄에 이미지 URL이 포함되어 있는지 확인
-                if (imageUrlPattern.test(line)) {
-                    // 이미지 URL 추출
-                    const match = line.match(imageUrlPattern);
-                    if (match) {
-                        const originalImageUrl = match[0];
-                        console.log("🖼️ Found original image URL for display:", originalImageUrl);
-                        
-                        // 프록시 URL로 변환 (표시용으로만)
-                        const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
-                        
-                        // 전체 줄을 이미지 태그로 교체 (프록시 URL 사용)
-                        processedLines.push(`<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`);
-                    } else {
-                        processedLines.push(line);
-                    }
+                const matches = line.match(imageUrlPattern);
+                if (matches && matches.length > 0) {
+                    const originalImageUrl = 'http' + matches[0]; // http 부분을 다시 추가
+                    console.log("🖼️ Processing image URL for display:", originalImageUrl);
+                    
+                    // 프록시 URL로 변환 (표시용으로만)
+                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
+                    
+                    // 전체 줄을 이미지 태그로 교체 (프록시 URL 사용)
+                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
+                    processedLines.push(imageTag);
                 } else {
                     processedLines.push(line);
                 }
@@ -931,8 +1062,14 @@
             return processedLines.join('\n');
         },
         
-        // 이미지 태그 수정 (프록시 URL 적용)
+        // 이미지 태그 수정 (프록시 URL 적용) - 개선된 버전
         fixImgTags: function(htmlStr) {
+            // 이미 프록시 URL로 처리된 이미지가 있는지 확인
+            if (htmlStr.includes('action=kachi_proxy_image')) {
+                console.log("🖼️ Image tags already processed with proxy URLs, skipping fixImgTags");
+                return htmlStr;
+            }
+            
             // 잘못된 이미지 태그 패턴들을 수정
             // 1. src 속성 뒤에 따옴표가 없는 경우
             htmlStr = htmlStr.replace(/src="([^"]+)(?=\s+style=)/g, 'src="$1"');
@@ -949,11 +1086,21 @@
             // 5. style 속성이 제대로 닫히지 않은 경우
             htmlStr = htmlStr.replace(/style="([^"]*?)"\s*">/g, 'style="$1">');
             
-            // 6. 모든 이미지 src를 프록시 URL로 변환
+            // 6. API 서버의 이미지 URL만 프록시 URL로 변환
             const self = this;
             htmlStr = htmlStr.replace(/<img\s+([^>]*?)src="([^"]+)"([^>]*?)>/g, function(match, before, src, after) {
-                const proxySrc = self.convertToProxyImageUrl(src);
-                return '<img ' + before + 'src="' + proxySrc + '"' + after + '>';
+                // 이미 프록시 URL이거나 데이터 URL이면 건너뛰기
+                if (src.includes('action=kachi_proxy_image') || src.startsWith('data:')) {
+                    return match;
+                }
+                
+                // API 서버 이미지 URL인 경우만 변환
+                if (src.includes(':8001/images/')) {
+                    const proxySrc = self.convertToProxyImageUrl(src);
+                    return '<img ' + before + 'src="' + proxySrc + '"' + after + '>';
+                }
+                
+                return match;
             });
             
             return htmlStr;
