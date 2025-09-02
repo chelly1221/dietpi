@@ -585,8 +585,12 @@
                 </svg>
             `;
             
-            // 메시지 내용 처리
-            const messageContent = message.content;
+            // 메시지 내용 처리 - 표시용으로 원본 URL을 프록시 URL로 변환
+            let messageContent = message.content;
+            if (messageContent && window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
+                messageContent = window.KachiAPI.processImageUrlsForDisplay(messageContent);
+                console.log("🖼️ Converting stored URLs to proxy URLs for display");
+            }
             
             const contentHtml = message.type === 'assistant' && message.referencedDocs ? 
                 `${message.referencedDocs}<div class="message-text">${messageContent}</div>` : 

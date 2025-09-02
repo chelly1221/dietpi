@@ -451,11 +451,16 @@
                 this.renderMathInElement(messageElement);
                 
                 // 스트리밍 완료 후 최종 메시지 업데이트
-                // MathJax 렌더링 전의 원본 HTML만 저장
-                const finalContent = this.cleanMathJaxContent(messageElement.querySelector('.message-text').innerHTML);
+                // 저장용: 원본 URL을 유지한 콘텐츠 생성
+                const rawContent = this.fixImgTags(KachiCore.streamBuffer);
+                const storageContent = this.processImageUrlsForStorage(rawContent);
+                const finalStorageContent = this.cleanMathJaxContent(storageContent);
+                
                 const message = KachiCore.findMessage(messageId);
                 if (message) {
-                    message.content = finalContent;
+                    // 저장용 콘텐츠는 원본 URL 유지
+                    message.content = finalStorageContent;
+                    console.log("💾 Saving content with original URLs for LLM compatibility");
                     // 참조 문서 정보도 저장
                     const referencedDocs = messageElement.querySelector('.referenced-docs');
                     if (referencedDocs) {
@@ -483,11 +488,16 @@
                         const stoppedMsg = window.kachi_ajax?.strings?.stopped || "사용자에 의해 중지되었습니다.";
                         textElement.innerHTML += `<div style="margin-top:10px; color:#a70638;">■ ${stoppedMsg}</div>`;
                         
-                        // 중지된 경우에도 현재까지의 내용을 저장 (MathJax 렌더링 정리)
-                        const partialContent = this.cleanMathJaxContent(textElement.innerHTML);
+                        // 중지된 경우에도 현재까지의 내용을 저장 (원본 URL 유지)
+                        const rawPartialContent = this.fixImgTags(KachiCore.streamBuffer);
+                        const storagePartialContent = this.processImageUrlsForStorage(rawPartialContent);
+                        const finalPartialContent = this.cleanMathJaxContent(storagePartialContent);
+                        
                         const message = KachiCore.findMessage(messageId);
                         if (message) {
-                            message.content = partialContent;
+                            // 저장용 콘텐츠는 원본 URL 유지 (중지된 경우)
+                            message.content = finalPartialContent;
+                            console.log("💾 Saving partial content with original URLs for LLM compatibility");
                             const referencedDocs = messageElement.querySelector('.referenced-docs');
                             if (referencedDocs) {
                                 message.referencedDocs = referencedDocs.outerHTML;
@@ -721,8 +731,8 @@
                 return placeholder;
             });
             
-            // 이미지 URL 패턴 처리 (모든 이미지 형식) - 행 전체 처리
-            text = this.processImageUrls(text);
+            // 이미지 URL 패턴 처리 (모든 이미지 형식) - 표시용으로만 행 전체 처리
+            text = this.processImageUrlsForDisplay(text);
             
             // --- 수평선을 <hr>로 변환 (독립된 줄에 있는 경우)
             text = text.replace(/^---+$/gm, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">');
@@ -856,13 +866,13 @@
             return imageUrl;
         },
         
-        // 이미지 URL 처리 함수 - 행 전체를 이미지로 변환
-        processImageUrls: function(text) {
+        // 이미지 URL 처리 함수 - 표시용으로만 변환 (저장용이 아님)
+        processImageUrlsForDisplay: function(text) {
             // 줄 단위로 분리
             const lines = text.split('\n');
             const processedLines = [];
             
-            // 이미지 URL 패턴
+            // 이미지 URL 패턴 (backend API URLs)
             const imageUrlPattern = /https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/;
             
             lines.forEach(line => {
@@ -871,14 +881,45 @@
                     // 이미지 URL 추출
                     const match = line.match(imageUrlPattern);
                     if (match) {
-                        const imageUrl = match[0];
-                        console.log("🖼️ Found image URL in line:", imageUrl);
+                        const originalImageUrl = match[0];
+                        console.log("🖼️ Found original image URL for display:", originalImageUrl);
                         
-                        // 프록시 URL로 변환
-                        const proxyUrl = this.convertToProxyImageUrl(imageUrl);
+                        // 프록시 URL로 변환 (표시용으로만)
+                        const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
                         
-                        // 전체 줄을 이미지 태그로 교체
-                        processedLines.push(`<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;">`);
+                        // 전체 줄을 이미지 태그로 교체 (프록시 URL 사용)
+                        processedLines.push(`<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`);
+                    } else {
+                        processedLines.push(line);
+                    }
+                } else {
+                    processedLines.push(line);
+                }
+            });
+            
+            return processedLines.join('\n');
+        },
+
+        // 저장용 이미지 URL 처리 - 원본 URL 유지
+        processImageUrlsForStorage: function(text) {
+            // 줄 단위로 분리
+            const lines = text.split('\n');
+            const processedLines = [];
+            
+            // 이미지 URL 패턴 (backend API URLs)
+            const imageUrlPattern = /https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/;
+            
+            lines.forEach(line => {
+                // 현재 줄에 이미지 URL이 포함되어 있는지 확인
+                if (imageUrlPattern.test(line)) {
+                    // 이미지 URL 추출
+                    const match = line.match(imageUrlPattern);
+                    if (match) {
+                        const originalImageUrl = match[0];
+                        console.log("💾 Keeping original image URL for storage:", originalImageUrl);
+                        
+                        // 원본 URL로 이미지 태그 생성 (저장용)
+                        processedLines.push(`<img src="${originalImageUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;">`);
                     } else {
                         processedLines.push(line);
                     }
