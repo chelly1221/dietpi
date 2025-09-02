@@ -107,7 +107,7 @@ git push haystack master         # Push to haystack remote master branch
 - **Files**: Includes class files, assets (CSS/JS), templates
 
 #### KACHI Document Manager (`wp-content/plugins/kachi-document-manager/`)
-- **Version**: 3.0.1 
+- **Version**: 3.0.2 
 - **Main Class**: `ThreeChan_PDF_Manager`
 - **Features**:
   - AI-based PDF/DOCX/PPTX/HWPX document upload and processing

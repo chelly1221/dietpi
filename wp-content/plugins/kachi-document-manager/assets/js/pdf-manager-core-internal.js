@@ -192,7 +192,7 @@
                 // Create proxy URL for display
                 const proxyUrl = this.createProxyImageUrl(baseUrl + ':8001/image' + imagePath);
                 console.log('🖼️ Converting image URL to HTML img tag:', match, '→', proxyUrl);
-                return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy" onerror="this.style.display='none'; console.warn('Failed to load image:', '${proxyUrl}');">`;
+                return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy">`;
             });
             
             // Also handle img tags with src attributes
