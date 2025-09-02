@@ -117,7 +117,7 @@ git push haystack master         # Push to haystack remote master branch
 - **Internal API**: Uses `THREECHAN_API_INTERNAL_URL` for document processing
 
 #### KACHI AI Search (`wp-content/plugins/kachi-ai-search/`)
-- **Version**: 2.2.0
+- **Version**: 2.3.0
 - **Main Class**: `Kachi_Query_System`
 - **Features**:
   - AI-powered natural language document search
@@ -267,6 +267,16 @@ The WordPress frontend integrates with the backend API:
 - Implement proper nonce verification
 - Store settings using WordPress Options API
 - Use ACF (Advanced Custom Fields) when available, fallback to user meta
+
+### Plugin Version Management
+- **ALWAYS increment the plugin version number when making ANY changes to plugin files**
+- Update both the plugin header version (`Version: X.Y.Z`) and constant definitions
+- Version format: MAJOR.MINOR.PATCH (semantic versioning)
+- Update corresponding version in CLAUDE.md documentation
+- Examples of version increments:
+  - Bug fixes: 2.2.0 → 2.2.1
+  - New features: 2.2.0 → 2.3.0  
+  - Breaking changes: 2.2.0 → 3.0.0
 
 ### Theme Development
 - The blank theme provides minimal structure
