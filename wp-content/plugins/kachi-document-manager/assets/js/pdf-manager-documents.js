@@ -52,12 +52,12 @@
             // Regular expression to find image URLs with :8001/image pattern
             const imageUrlPattern = /(https?:\/\/[^:]+):8001\/image([^"'\s>]+)/g;
             
-            // Replace image URLs with proxy URLs for display only
+            // Replace image URLs with HTML img tags using proxy URLs for display only
             displayContent = displayContent.replace(imageUrlPattern, (match, baseUrl, imagePath) => {
                 // Create proxy URL for display
                 const proxyUrl = this.createProxyImageUrl(baseUrl + ':8001/image' + imagePath);
-                console.log('🖼️ Converting image URL for display:', match, '→', proxyUrl);
-                return proxyUrl;
+                console.log('🖼️ Converting image URL to HTML img tag:', match, '→', proxyUrl);
+                return `<img src="${proxyUrl}" alt="Document Image" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;" loading="lazy" onerror="this.style.display='none'; console.warn('Failed to load image:', '${proxyUrl}');">`;
             });
             
             // Also handle img tags with src attributes
