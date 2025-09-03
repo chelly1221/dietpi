@@ -886,7 +886,7 @@
             if (isFinal && KachiCore.streamBuffer) {
                 // 남은 이미지들을 실시간 처리한 후 최종 포맷팅
                 const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                const formattedContent = this.formatResponse(imageResult.processedText);
+                const formattedContent = this.formatResponsePreservingImages(imageResult.processedText);
                 textElement.innerHTML = formattedContent;
                 KachiCore.streamBuffer = '';
                 return;
@@ -979,7 +979,7 @@
                     } else {
                         // 모든 글자를 표시했으면 실시간 처리 후 최종 포맷팅
                         const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                        const finalContent = this.formatResponse(imageResult.processedText);
+                        const finalContent = this.formatResponsePreservingImages(imageResult.processedText);
                         textElement.innerHTML = finalContent;
                         KachiCore.isCharStreaming = false;
                         
