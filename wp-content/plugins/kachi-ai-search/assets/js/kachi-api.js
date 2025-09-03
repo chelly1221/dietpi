@@ -498,12 +498,6 @@
                 
                 const message = KachiCore.findMessage(messageId);
                 if (message) {
-                    // 최종 저장 콘텐츠가 비어있으면 원본 스트리밍 버퍼 사용
-                    if (!finalStorageContent || !finalStorageContent.trim()) {
-                        console.warn("⚠️ Final storage content is empty, using original stream buffer");
-                        finalStorageContent = KachiCore.streamBuffer || '';
-                    }
-                    
                     // 저장용 콘텐츠는 원본 URL 유지
                     message.content = finalStorageContent;
                     console.log("💾 Saving content with original URLs for LLM compatibility");
@@ -559,12 +553,6 @@
                         
                         const message = KachiCore.findMessage(messageId);
                         if (message) {
-                            // 중지된 경우도 최종 콘텐츠가 비어있으면 원본 버퍼 사용
-                            if (!finalPartialContent || !finalPartialContent.trim()) {
-                                console.warn("⚠️ Final partial content is empty, using original stream buffer");
-                                finalPartialContent = KachiCore.streamBuffer || '';
-                            }
-                            
                             // 저장용 콘텐츠는 원본 URL 유지 (중지된 경우)
                             message.content = finalPartialContent;
                             console.log("💾 Saving partial content with original URLs for LLM compatibility");
