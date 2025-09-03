@@ -96,6 +96,14 @@
                             const mostRecentConversation = this.conversations[0]; // 가장 최근에 업데이트된 대화
                             this.currentConversationId = mostRecentConversation.id;
                             
+                            // 원본 데이터베이스 메시지 구조 디버깅
+                            console.log(`📦 Raw conversation from DB:`, {
+                                id: mostRecentConversation.id,
+                                title: mostRecentConversation.title,
+                                messagesCount: mostRecentConversation.messages ? mostRecentConversation.messages.length : 'NO MESSAGES',
+                                messagesRaw: mostRecentConversation.messages
+                            });
+                            
                             // 메시지 복원 시 유효성 검증 추가
                             this.chatHistory = mostRecentConversation.messages.map((msg, index) => {
                                 // 메시지 구조 검증
@@ -115,6 +123,20 @@
                             }).filter(msg => msg !== null); // null 메시지 제거
                             
                             console.log(`🔄 Auto-restored conversation: ${mostRecentConversation.id} with ${this.chatHistory.length} valid messages`);
+                            
+                            // 복원된 메시지 구조 디버깅
+                            this.chatHistory.forEach((msg, idx) => {
+                                if (msg.type === 'assistant') {
+                                    console.log(`📨 Restored assistant message ${idx}:`, {
+                                        id: msg.id,
+                                        hasContent: !!msg.content,
+                                        contentLength: msg.content ? msg.content.length : 0,
+                                        contentPreview: msg.content ? msg.content.substring(0, 50) : 'EMPTY',
+                                        hasReferencedDocs: !!msg.referencedDocs,
+                                        referencedDocsPreview: msg.referencedDocs ? msg.referencedDocs.substring(0, 50) : 'NONE'
+                                    });
+                                }
+                            });
                             
                             // 즉시 UI 렌더링 트리거 (setTimeout 없이)
                             if (window.KachiUI && window.KachiUI.renderChatHistory) {

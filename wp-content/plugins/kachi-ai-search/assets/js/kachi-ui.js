@@ -565,6 +565,20 @@
                     return;
                 }
                 
+                // 메시지 구조 상세 디버깅
+                if (message.type === 'assistant') {
+                    console.log(`🔍 Assistant message ${index}:`, {
+                        id: message.id,
+                        type: message.type,
+                        hasContent: !!message.content,
+                        contentLength: message.content ? message.content.length : 0,
+                        contentPreview: message.content ? message.content.substring(0, 100) : 'NO CONTENT',
+                        hasReferencedDocs: !!message.referencedDocs,
+                        referencedDocsLength: message.referencedDocs ? message.referencedDocs.length : 0,
+                        referencedDocsPreview: message.referencedDocs ? message.referencedDocs.substring(0, 100) : 'NO REFS'
+                    });
+                }
+                
                 // 스트리밍 중 생성된 빈 assistant 메시지만 필터링 (id가 없거나 임시 메시지)
                 if (message.type === 'assistant' && (!message.content || message.content.trim() === '')) {
                     // 메시지에 ID가 없거나 임시 메시지인 경우에만 건너뛰기
