@@ -603,10 +603,12 @@
             return html;
         },
         
-        // 완성된 이미지 URL 감지 및 추출
+        // 완성된 이미지 URL 감지 및 추출 - 수정된 패턴
         detectCompleteImages: function(text, processedImageUrls = new Set()) {
             const completeImages = [];
             const lines = text.split('\n');
+            
+            console.log('🔍 Detecting complete images in', lines.length, 'lines');
             
             lines.forEach((line, lineIndex) => {
                 // 이미 img 태그가 있는 줄은 건너뛰기
@@ -614,13 +616,16 @@
                     return;
                 }
                 
-                // 마크다운 스타일 이미지 URL 패턴: something](http://host:8001/images/file)
-                const markdownImagePattern = /.*\]\((https?:\/\/[^\)]*)(?:8001\/images\/[^\)\]]+)\)/;
+                // 마크다운 스타일 이미지 URL 패턴: something](http://host:8001/images/file) - 수정된 패턴
+                const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)\]]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
                 if (markdownMatch) {
-                    let originalImageUrl = markdownMatch[1] + (markdownMatch[0].match(/:8001\/images\/[^\)\]]+/) || [''])[0];
+                    let originalImageUrl = markdownMatch[1]; // 직접 추출된 완전한 URL 사용
+                    console.log('🖼️ Found markdown image URL during streaming:', originalImageUrl);
+                    
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    console.log('🧹 Cleaned URL:', originalImageUrl);
                     
                     // 이미 처리된 이미지가 아닌 경우에만 추가
                     if (!processedImageUrls.has(originalImageUrl)) {
@@ -630,6 +635,9 @@
                             type: 'markdown'
                         });
                         processedImageUrls.add(originalImageUrl);
+                        console.log('✅ Added markdown image for real-time processing');
+                    } else {
+                        console.log('⏭️ Skipping already processed markdown image');
                     }
                     return;
                 }
@@ -640,7 +648,10 @@
                 
                 if (normalMatch) {
                     let originalImageUrl = normalMatch[0];
+                    console.log('🖼️ Found normal image URL during streaming:', originalImageUrl);
+                    
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    console.log('🧹 Cleaned URL:', originalImageUrl);
                     
                     // 이미 처리된 이미지가 아닌 경우에만 추가
                     if (!processedImageUrls.has(originalImageUrl)) {
@@ -650,10 +661,14 @@
                             type: 'normal'
                         });
                         processedImageUrls.add(originalImageUrl);
+                        console.log('✅ Added normal image for real-time processing');
+                    } else {
+                        console.log('⏭️ Skipping already processed normal image');
                     }
                 }
             });
             
+            console.log('🖼️ Total complete images detected:', completeImages.length);
             return completeImages;
         },
         
