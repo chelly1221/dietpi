@@ -603,7 +603,92 @@
             return html;
         },
         
-        // 스트림 버퍼 플러시 - 이미지 깜빡임 방지 개선
+        // 완성된 이미지 URL 감지 및 추출
+        detectCompleteImages: function(text, processedImageUrls = new Set()) {
+            const completeImages = [];
+            const lines = text.split('\n');
+            
+            lines.forEach((line, lineIndex) => {
+                // 이미 img 태그가 있는 줄은 건너뛰기
+                if (line.includes('<img')) {
+                    return;
+                }
+                
+                // 마크다운 스타일 이미지 URL 패턴: something](http://host:8001/images/file)
+                const markdownImagePattern = /.*\]\((https?:\/\/[^\)]*)(?:8001\/images\/[^\)\]]+)\)/;
+                const markdownMatch = line.match(markdownImagePattern);
+                
+                if (markdownMatch) {
+                    let originalImageUrl = markdownMatch[1] + (markdownMatch[0].match(/:8001\/images\/[^\)\]]+/) || [''])[0];
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    
+                    // 이미 처리된 이미지가 아닌 경우에만 추가
+                    if (!processedImageUrls.has(originalImageUrl)) {
+                        completeImages.push({
+                            lineIndex,
+                            originalUrl: originalImageUrl,
+                            type: 'markdown'
+                        });
+                        processedImageUrls.add(originalImageUrl);
+                    }
+                    return;
+                }
+                
+                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file)
+                const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s\)\]]+/;
+                const normalMatch = line.match(normalImagePattern);
+                
+                if (normalMatch) {
+                    let originalImageUrl = normalMatch[0];
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    
+                    // 이미 처리된 이미지가 아닌 경우에만 추가
+                    if (!processedImageUrls.has(originalImageUrl)) {
+                        completeImages.push({
+                            lineIndex,
+                            originalUrl: originalImageUrl,
+                            type: 'normal'
+                        });
+                        processedImageUrls.add(originalImageUrl);
+                    }
+                }
+            });
+            
+            return completeImages;
+        },
+        
+        // 실시간 이미지 처리 - 완성된 이미지만 처리
+        processImagesRealtime: function(text, processedImageUrls) {
+            const completeImages = this.detectCompleteImages(text, processedImageUrls);
+            
+            if (completeImages.length === 0) {
+                return text; // 새로운 완성된 이미지가 없으면 원본 반환
+            }
+            
+            console.log('🖼️ Found', completeImages.length, 'new complete images for real-time processing');
+            
+            // 줄 단위로 분리하여 처리
+            const lines = text.split('\n');
+            
+            completeImages.forEach(imageInfo => {
+                const { lineIndex, originalUrl } = imageInfo;
+                
+                if (lines[lineIndex]) {
+                    // 프록시 URL로 변환
+                    const proxyUrl = this.convertToProxyImageUrl(originalUrl);
+                    
+                    // 해당 줄을 이미지 태그로 교체
+                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalUrl}">`;
+                    lines[lineIndex] = imageTag;
+                    
+                    console.log('🖼️ Real-time processed image:', originalUrl);
+                }
+            });
+            
+            return lines.join('\n');
+        },
+
+        // 스트림 버퍼 플러시 - 실시간 이미지 렌더링 개선
         tryFlushStreamBuffer: function(messageElement, isFinal = false) {
             // messageElement가 유효한지 확인
             if (!messageElement || !messageElement.querySelector) {
@@ -624,10 +709,16 @@
                 $queryInput.val('');
             }
             
+            // 처리된 이미지 URL 추적을 위한 Set 초기화 (메시지별로)
+            if (!messageElement._processedImageUrls) {
+                messageElement._processedImageUrls = new Set();
+            }
+            
             // 최종 플러시인 경우 전체 내용을 포맷팅
             if (isFinal && KachiCore.streamBuffer) {
-                // 이미지 처리는 포맷팅 함수에서 한 번만 수행
-                const formattedContent = this.formatResponse(KachiCore.streamBuffer);
+                // 남은 이미지들을 실시간 처리한 후 최종 포맷팅
+                let processedContent = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
+                const formattedContent = this.formatResponse(processedContent);
                 textElement.innerHTML = formattedContent;
                 KachiCore.streamBuffer = '';
                 return;
@@ -645,7 +736,7 @@
                 // 수식 감지를 위한 변수
                 let mathDetected = false;
                 
-                // 타이핑 효과를 위한 함수
+                // 타이핑 효과를 위한 함수 - 실시간 이미지 처리 포함
                 const typeNextChars = () => {
                     if (KachiCore.displayedLength < KachiCore.streamBuffer.length) {
                         // 한 번에 표시할 글자 수 (한글은 1글자, 영문은 2-3글자)
@@ -666,23 +757,22 @@
                             mathDetected = true;
                         }
                         
-                        // 이미지 태그 완성도 검사
-                        let safeDisplayText = displayText;
-                        const lastImgStart = displayText.lastIndexOf('<img');
-                        const lastImgEnd = displayText.lastIndexOf('>');
+                        // 실시간 이미지 처리 - 완성된 이미지만 처리
+                        let processedText = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
+                        
+                        // 이미지 태그 완성도 검사 (처리된 텍스트 기준)
+                        let safeDisplayText = processedText;
+                        const lastImgStart = processedText.lastIndexOf('<img');
+                        const lastImgEnd = processedText.lastIndexOf('>');
                         
                         // 미완성 이미지 태그가 있으면 해당 부분을 제외
                         if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
                             // 이미지 URL 패턴이 포함된 줄인지 확인
-                            const beforeImg = displayText.substring(0, lastImgStart);
-                            const afterImgStart = displayText.substring(lastImgStart);
+                            const beforeImg = processedText.substring(0, lastImgStart);
+                            const afterImgStart = processedText.substring(lastImgStart);
                             
-                            // 이미지 URL 패턴이 있는 전체 줄을 찾기
-                            const lines = beforeImg.split('\n');
-                            const currentLine = afterImgStart.split('\n')[0];
-                            
-                            // 현재 줄에 이미지 URL 패턴이 있는지 확인
-                            if (/https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/.test(beforeImg + currentLine)) {
+                            // 현재 줄에 아직 처리되지 않은 이미지 URL 패턴이 있는지 확인
+                            if (/https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/.test(beforeImg + afterImgStart.split('\n')[0])) {
                                 // 완전한 이미지 URL이 있으면 해당 줄 전체를 기다림
                                 const lastNewlineIndex = beforeImg.lastIndexOf('\n');
                                 safeDisplayText = lastNewlineIndex !== -1 ? beforeImg.substring(0, lastNewlineIndex + 1) : '';
@@ -692,12 +782,15 @@
                             }
                         }
                         
-                        // 안전한 텍스트로 표시 (이미지 처리 없이)
+                        // 안전한 텍스트로 표시 (추가적인 이미지 처리는 formatResponseWithoutImages에서 제외)
                         if (safeDisplayText.length > 0) {
-                            textElement.innerHTML = this.formatResponseWithoutImages(safeDisplayText);
+                            // 실시간으로 처리된 이미지들은 이미 <img> 태그로 변환되었으므로,
+                            // formatResponseWithoutImages를 사용하되 이미 처리된 이미지는 유지
+                            const formattedText = this.formatResponsePreservingImages(safeDisplayText);
+                            textElement.innerHTML = formattedText;
                             
-                            // 표시된 길이 업데이트는 실제 처리된 텍스트 기준
-                            if (safeDisplayText === displayText) {
+                            // 표시된 길이 업데이트는 원본 텍스트 기준
+                            if (safeDisplayText.replace(/<img[^>]*>/g, '').length >= displayText.replace(/<img[^>]*>/g, '').length) {
                                 KachiCore.displayedLength += charsToAdd;
                             }
                         }
@@ -711,8 +804,9 @@
                         // 다음 글자 표시를 위한 타이머
                         KachiCore.typeTimer = setTimeout(typeNextChars, 30);
                     } else {
-                        // 모든 글자를 표시했으면 최종 포맷팅 (이미지 포함)
-                        const finalContent = this.formatResponse(KachiCore.streamBuffer);
+                        // 모든 글자를 표시했으면 실시간 처리 후 최종 포맷팅
+                        let processedContent = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
+                        const finalContent = this.formatResponse(processedContent);
                         textElement.innerHTML = finalContent;
                         KachiCore.isCharStreaming = false;
                         
@@ -724,6 +818,30 @@
                 // 타이핑 시작
                 typeNextChars();
             }
+        },
+        
+        // 이미지를 보존하면서 나머지 포맷팅 수행 - 실시간 스트리밍용
+        formatResponsePreservingImages: function(text) {
+            // 이미 처리된 이미지 태그를 임시로 보호
+            const imagePlaceholders = {};
+            let imageCounter = 0;
+            
+            text = text.replace(/<img[^>]*>/g, function(match) {
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = match;
+                return placeholder;
+            });
+            
+            // 기존 포맷팅 로직 적용 (이미지 처리 제외)
+            const formatted = this.formatResponseWithoutImages(text);
+            
+            // 이미지 플레이스홀더를 원래 태그로 복원
+            let result = formatted;
+            Object.keys(imagePlaceholders).forEach(placeholder => {
+                result = result.replace(new RegExp(placeholder, 'g'), imagePlaceholders[placeholder]);
+            });
+            
+            return result;
         },
         
         // 답변 포맷팅 (이미지 처리 제외) - 스트리밍 중 사용
