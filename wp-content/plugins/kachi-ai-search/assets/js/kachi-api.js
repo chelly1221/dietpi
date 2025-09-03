@@ -805,12 +805,12 @@
             return completeImages;
         },
         
-        // 실시간 이미지 처리 - 완성된 이미지만 처리, 커트오프 위치 반환
+        // 실시간 이미지 처리 - 완성된 이미지만 처리, 라인 기반 커트오프
         processImagesRealtime: function(text, processedImageUrls) {
             const completeImages = this.detectCompleteImages(text, processedImageUrls);
             
             if (completeImages.length === 0) {
-                return { processedText: text, cutoffPosition: -1 }; // 새로운 완성된 이미지가 없으면 원본 반환
+                return { processedText: text, cutoffLineIndex: -1 }; // 새로운 완성된 이미지가 없으면 원본 반환
             }
             
             console.log('🖼️ Found', completeImages.length, 'new complete images for real-time processing');
@@ -839,16 +839,9 @@
             
             const processedText = lines.join('\n');
             
-            // 커트오프 위치 계산 - 마지막 처리된 이미지 라인의 끝
-            let cutoffPosition = -1;
-            if (lastProcessedLineIndex >= 0) {
-                // 처리된 라인까지의 텍스트 길이 계산
-                const linesUpToProcessed = lines.slice(0, lastProcessedLineIndex + 1);
-                cutoffPosition = linesUpToProcessed.join('\n').length;
-                console.log('🖼️ Image processing cutoff position set to:', cutoffPosition);
-            }
+            console.log('🖼️ Image processing cutoff line index set to:', lastProcessedLineIndex);
             
-            return { processedText, cutoffPosition };
+            return { processedText, cutoffLineIndex: lastProcessedLineIndex };
         },
 
         // 스트림 버퍼 플러시 - 실시간 이미지 렌더링 개선
@@ -877,9 +870,9 @@
                 messageElement._processedImageUrls = new Set();
             }
             
-            // 처리된 버퍼 길이 추적 초기화 (메시지별로)
-            if (!messageElement._processedBufferLength) {
-                messageElement._processedBufferLength = 0;
+            // 처리된 라인 인덱스 추적 초기화 (메시지별로)
+            if (messageElement._processedLineIndex === undefined) {
+                messageElement._processedLineIndex = -1;
             }
             
             // 최종 플러시인 경우 전체 내용을 포맷팅
@@ -925,24 +918,35 @@
                             mathDetected = true;
                         }
                         
-                        // 실시간 이미지 처리 - 완성된 이미지만 처리, 커트오프 위치 받기
+                        // 실시간 이미지 처리 - 완성된 이미지만 처리, 라인 기반 커트오프
                         const imageResult = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
                         const processedText = imageResult.processedText;
-                        const newCutoffPosition = imageResult.cutoffPosition;
+                        const newCutoffLineIndex = imageResult.cutoffLineIndex;
                         
-                        // 새로운 이미지가 처리되어 커트오프 위치가 업데이트된 경우
-                        if (newCutoffPosition > messageElement._processedBufferLength) {
-                            messageElement._processedBufferLength = newCutoffPosition;
-                            console.log('🖼️ Updated cutoff position to:', newCutoffPosition);
+                        // 새로운 이미지가 처리되어 커트오프 라인이 업데이트된 경우
+                        if (newCutoffLineIndex > messageElement._processedLineIndex) {
+                            messageElement._processedLineIndex = newCutoffLineIndex;
+                            console.log('🖼️ Updated cutoff line index to:', newCutoffLineIndex);
                         }
                         
-                        // 처리된 부분과 스트리밍 부분을 분리
-                        const processedPart = processedText.substring(0, messageElement._processedBufferLength);
-                        const streamingPart = processedText.substring(messageElement._processedBufferLength);
+                        // 라인 단위로 처리된 부분과 스트리밍 부분 분리
+                        const lines = processedText.split('\n');
+                        let processedPart = '';
+                        let streamingPart = processedText;
+                        
+                        if (messageElement._processedLineIndex >= 0) {
+                            const processedLines = lines.slice(0, messageElement._processedLineIndex + 1);
+                            const streamingLines = lines.slice(messageElement._processedLineIndex + 1);
+                            processedPart = processedLines.join('\n');
+                            streamingPart = streamingLines.join('\n');
+                            if (processedPart && streamingPart) {
+                                streamingPart = '\n' + streamingPart; // 줄바꿈 복원
+                            }
+                        }
                         
                         // 스트리밍 부분에서만 타이핑 효과 적용
-                        const streamingStartPos = Math.max(0, KachiCore.displayedLength - messageElement._processedBufferLength);
-                        const streamingDisplayLength = Math.min(streamingPart.length, streamingStartPos + charsToAdd);
+                        const currentStreamingLength = KachiCore.displayedLength - processedPart.length;
+                        const streamingDisplayLength = Math.min(streamingPart.length, Math.max(0, currentStreamingLength) + charsToAdd);
                         const displayedStreamingPart = streamingPart.substring(0, streamingDisplayLength);
                         
                         // 최종 표시할 텍스트: 처리된 부분 + 스트리밍되는 부분
