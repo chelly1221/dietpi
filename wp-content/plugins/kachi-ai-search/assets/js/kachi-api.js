@@ -461,6 +461,14 @@
                     // 저장용 콘텐츠는 원본 URL 유지
                     message.content = finalStorageContent;
                     console.log("💾 Saving content with original URLs for LLM compatibility");
+                    console.log("🔍 Content being saved:", {
+                        hasContent: !!finalStorageContent,
+                        contentLength: finalStorageContent ? finalStorageContent.length : 0,
+                        contentPreview: finalStorageContent ? finalStorageContent.substring(0, 100) : 'EMPTY CONTENT',
+                        messageId: message.id,
+                        messageType: message.type
+                    });
+                    
                     // 참조 문서 정보도 저장
                     const referencedDocs = messageElement.querySelector('.referenced-docs');
                     if (referencedDocs) {
@@ -498,6 +506,13 @@
                             // 저장용 콘텐츠는 원본 URL 유지 (중지된 경우)
                             message.content = finalPartialContent;
                             console.log("💾 Saving partial content with original URLs for LLM compatibility");
+                            console.log("🔍 Partial content being saved:", {
+                                hasContent: !!finalPartialContent,
+                                contentLength: finalPartialContent ? finalPartialContent.length : 0,
+                                contentPreview: finalPartialContent ? finalPartialContent.substring(0, 100) : 'EMPTY PARTIAL CONTENT',
+                                messageId: message.id,
+                                messageType: message.type
+                            });
                             const referencedDocs = messageElement.querySelector('.referenced-docs');
                             if (referencedDocs) {
                                 message.referencedDocs = referencedDocs.outerHTML;

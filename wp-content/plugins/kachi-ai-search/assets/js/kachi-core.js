@@ -112,11 +112,45 @@
                                     return null;
                                 }
                                 
+                                // 콘텐츠 복구 로직 - 여러 필드에서 콘텐츠 찾기
+                                let recoveredContent = msg.content || '';
+                                
+                                // 대체 콘텐츠 필드 확인
+                                if (!recoveredContent && msg.text) {
+                                    recoveredContent = msg.text;
+                                    console.log(`🔄 Recovered content from 'text' field for message ${index}`);
+                                }
+                                
+                                // 메시지 텍스트에서 추출 시도
+                                if (!recoveredContent && msg.message) {
+                                    recoveredContent = msg.message;
+                                    console.log(`🔄 Recovered content from 'message' field for message ${index}`);
+                                }
+                                
+                                // referencedDocs에서 실제 응답 텍스트 추출 시도 
+                                if (!recoveredContent && msg.referencedDocs && msg.type === 'assistant') {
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = msg.referencedDocs;
+                                    const messageText = tempDiv.querySelector('.message-text');
+                                    if (messageText && messageText.textContent.trim()) {
+                                        recoveredContent = messageText.innerHTML;
+                                        console.log(`🔄 Recovered content from referencedDocs for message ${index}`);
+                                    }
+                                }
+                                
+                                console.log(`📋 Message ${index} content recovery:`, {
+                                    originalContent: !!msg.content,
+                                    recoveredContent: !!recoveredContent,
+                                    recoveredLength: recoveredContent.length,
+                                    type: msg.type,
+                                    id: msg.id
+                                });
+
                                 return {
                                     ...msg,
                                     id: msg.id || `restored-${Date.now()}-${index}`,
                                     type: msg.type || 'unknown',
-                                    content: msg.content || '',
+                                    content: recoveredContent,
                                     time: msg.time || new Date().toLocaleTimeString('ko-KR'),
                                     referencedDocs: msg.referencedDocs || null
                                 };
