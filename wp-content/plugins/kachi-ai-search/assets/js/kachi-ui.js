@@ -623,29 +623,6 @@
             
             // 메시지 내용 처리 - 표시용으로 원본 URL을 프록시 URL로 변환
             let messageContent = message.content;
-            
-            // Assistant 메시지인데 content가 비어있는 경우 fallback 처리
-            if (message.type === 'assistant' && (!messageContent || messageContent.trim() === '')) {
-                // referencedDocs에서 내용 추출 시도
-                if (message.referencedDocs) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = message.referencedDocs;
-                    const messageText = tempDiv.querySelector('.message-text');
-                    if (messageText && messageText.textContent.trim()) {
-                        messageContent = messageText.innerHTML;
-                        console.log("🔄 Extracted content from referencedDocs for display");
-                    } else {
-                        // 참조문서만 있고 실제 응답이 없는 경우
-                        messageContent = '<div style="color: #666; font-style: italic;">응답 내용을 불러올 수 없습니다.</div>';
-                        console.warn("⚠️ No content found in referencedDocs");
-                    }
-                } else {
-                    // 완전히 비어있는 경우
-                    messageContent = '<div style="color: #666; font-style: italic;">메시지 내용이 없습니다.</div>';
-                    console.warn("⚠️ Empty assistant message with no fallback content");
-                }
-            }
-            
             if (messageContent && window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
                 messageContent = window.KachiAPI.processImageUrlsForDisplay(messageContent);
                 console.log("🖼️ Converting stored URLs to proxy URLs for display");
