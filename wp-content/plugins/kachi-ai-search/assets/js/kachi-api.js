@@ -805,18 +805,19 @@
             return completeImages;
         },
         
-        // 실시간 이미지 처리 - 완성된 이미지만 처리
+        // 실시간 이미지 처리 - 완성된 이미지만 처리, 커트오프 위치 반환
         processImagesRealtime: function(text, processedImageUrls) {
             const completeImages = this.detectCompleteImages(text, processedImageUrls);
             
             if (completeImages.length === 0) {
-                return text; // 새로운 완성된 이미지가 없으면 원본 반환
+                return { processedText: text, cutoffPosition: -1 }; // 새로운 완성된 이미지가 없으면 원본 반환
             }
             
             console.log('🖼️ Found', completeImages.length, 'new complete images for real-time processing');
             
             // 줄 단위로 분리하여 처리
             const lines = text.split('\n');
+            let lastProcessedLineIndex = -1;
             
             completeImages.forEach(imageInfo => {
                 const { lineIndex, originalUrl } = imageInfo;
@@ -829,11 +830,25 @@
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalUrl}">`;
                     lines[lineIndex] = imageTag;
                     
-                    console.log('🖼️ Real-time processed image:', originalUrl);
+                    // 마지막으로 처리된 라인 인덱스 업데이트
+                    lastProcessedLineIndex = Math.max(lastProcessedLineIndex, lineIndex);
+                    
+                    console.log('🖼️ Real-time processed image:', originalUrl, 'at line', lineIndex);
                 }
             });
             
-            return lines.join('\n');
+            const processedText = lines.join('\n');
+            
+            // 커트오프 위치 계산 - 마지막 처리된 이미지 라인의 끝
+            let cutoffPosition = -1;
+            if (lastProcessedLineIndex >= 0) {
+                // 처리된 라인까지의 텍스트 길이 계산
+                const linesUpToProcessed = lines.slice(0, lastProcessedLineIndex + 1);
+                cutoffPosition = linesUpToProcessed.join('\n').length;
+                console.log('🖼️ Image processing cutoff position set to:', cutoffPosition);
+            }
+            
+            return { processedText, cutoffPosition };
         },
 
         // 스트림 버퍼 플러시 - 실시간 이미지 렌더링 개선
@@ -862,11 +877,16 @@
                 messageElement._processedImageUrls = new Set();
             }
             
+            // 처리된 버퍼 길이 추적 초기화 (메시지별로)
+            if (!messageElement._processedBufferLength) {
+                messageElement._processedBufferLength = 0;
+            }
+            
             // 최종 플러시인 경우 전체 내용을 포맷팅
             if (isFinal && KachiCore.streamBuffer) {
                 // 남은 이미지들을 실시간 처리한 후 최종 포맷팅
-                let processedContent = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                const formattedContent = this.formatResponse(processedContent);
+                const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
+                const formattedContent = this.formatResponse(imageResult.processedText);
                 textElement.innerHTML = formattedContent;
                 KachiCore.streamBuffer = '';
                 return;
@@ -905,42 +925,47 @@
                             mathDetected = true;
                         }
                         
-                        // 실시간 이미지 처리 - 완성된 이미지만 처리
-                        let processedText = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
+                        // 실시간 이미지 처리 - 완성된 이미지만 처리, 커트오프 위치 받기
+                        const imageResult = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
+                        const processedText = imageResult.processedText;
+                        const newCutoffPosition = imageResult.cutoffPosition;
                         
-                        // 이미지 태그 완성도 검사 (처리된 텍스트 기준)
-                        let safeDisplayText = processedText;
-                        const lastImgStart = processedText.lastIndexOf('<img');
-                        const lastImgEnd = processedText.lastIndexOf('>');
-                        
-                        // 미완성 이미지 태그가 있으면 해당 부분을 제외
-                        if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
-                            // 이미지 URL 패턴이 포함된 줄인지 확인
-                            const beforeImg = processedText.substring(0, lastImgStart);
-                            const afterImgStart = processedText.substring(lastImgStart);
-                            
-                            // 현재 줄에 아직 처리되지 않은 이미지 URL 패턴이 있는지 확인
-                            if (/https?:\/\/[^\s\)]+:8001\/images\/[^\s\)]+/.test(beforeImg + afterImgStart.split('\n')[0])) {
-                                // 완전한 이미지 URL이 있으면 해당 줄 전체를 기다림
-                                const lastNewlineIndex = beforeImg.lastIndexOf('\n');
-                                safeDisplayText = lastNewlineIndex !== -1 ? beforeImg.substring(0, lastNewlineIndex + 1) : '';
-                            } else {
-                                // 단순히 미완성 태그만 제외
-                                safeDisplayText = beforeImg;
-                            }
+                        // 새로운 이미지가 처리되어 커트오프 위치가 업데이트된 경우
+                        if (newCutoffPosition > messageElement._processedBufferLength) {
+                            messageElement._processedBufferLength = newCutoffPosition;
+                            console.log('🖼️ Updated cutoff position to:', newCutoffPosition);
                         }
                         
-                        // 안전한 텍스트로 표시 (추가적인 이미지 처리는 formatResponseWithoutImages에서 제외)
+                        // 처리된 부분과 스트리밍 부분을 분리
+                        const processedPart = processedText.substring(0, messageElement._processedBufferLength);
+                        const streamingPart = processedText.substring(messageElement._processedBufferLength);
+                        
+                        // 스트리밍 부분에서만 타이핑 효과 적용
+                        const streamingStartPos = Math.max(0, KachiCore.displayedLength - messageElement._processedBufferLength);
+                        const streamingDisplayLength = Math.min(streamingPart.length, streamingStartPos + charsToAdd);
+                        const displayedStreamingPart = streamingPart.substring(0, streamingDisplayLength);
+                        
+                        // 최종 표시할 텍스트: 처리된 부분 + 스트리밍되는 부분
+                        const finalDisplayText = processedPart + displayedStreamingPart;
+                        
+                        // 이미지 태그 완성도 검사 (스트리밍 부분에서만)
+                        let safeDisplayText = finalDisplayText;
+                        const lastImgStart = displayedStreamingPart.lastIndexOf('<img');
+                        const lastImgEnd = displayedStreamingPart.lastIndexOf('>');
+                        
+                        // 스트리밍 부분에 미완성 이미지 태그가 있으면 해당 부분을 제외
+                        if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
+                            const safeStreamingPart = displayedStreamingPart.substring(0, lastImgStart);
+                            safeDisplayText = processedPart + safeStreamingPart;
+                        }
+                        
+                        // 안전한 텍스트로 표시
                         if (safeDisplayText.length > 0) {
-                            // 실시간으로 처리된 이미지들은 이미 <img> 태그로 변환되었으므로,
-                            // formatResponseWithoutImages를 사용하되 이미 처리된 이미지는 유지
                             const formattedText = this.formatResponsePreservingImages(safeDisplayText);
                             textElement.innerHTML = formattedText;
                             
-                            // 표시된 길이 업데이트는 원본 텍스트 기준
-                            if (safeDisplayText.replace(/<img[^>]*>/g, '').length >= displayText.replace(/<img[^>]*>/g, '').length) {
-                                KachiCore.displayedLength += charsToAdd;
-                            }
+                            // 표시된 길이 업데이트 (전체 텍스트 기준)
+                            KachiCore.displayedLength = safeDisplayText.length;
                         }
                         
                         // 수식이 감지되면 즉시 렌더링
@@ -953,8 +978,8 @@
                         KachiCore.typeTimer = setTimeout(typeNextChars, 30);
                     } else {
                         // 모든 글자를 표시했으면 실시간 처리 후 최종 포맷팅
-                        let processedContent = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                        const finalContent = this.formatResponse(processedContent);
+                        const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
+                        const finalContent = this.formatResponse(imageResult.processedText);
                         textElement.innerHTML = finalContent;
                         KachiCore.isCharStreaming = false;
                         
