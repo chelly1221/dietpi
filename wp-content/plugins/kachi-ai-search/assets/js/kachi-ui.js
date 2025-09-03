@@ -1263,6 +1263,135 @@
             }
 
             cyclePlaceholders();
+        },
+        
+        // 저장 오류 알림 표시
+        showSaveErrorNotification: function() {
+            console.warn('⚠️ Showing save error notification to user');
+            
+            // 기존 알림 제거
+            $('.save-error-notification').remove();
+            
+            const notification = $(`
+                <div class="save-error-notification" style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #dc3545;
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    max-width: 300px;
+                    font-size: 14px;
+                    line-height: 1.4;
+                ">
+                    <div style="font-weight: bold; margin-bottom: 8px;">💾 저장 오류</div>
+                    <div>대화 내용 저장에 실패했습니다. 네트워크 연결을 확인해주세요.</div>
+                    <button onclick="$(this).closest('.save-error-notification').fadeOut()" 
+                            style="
+                                position: absolute;
+                                top: 8px;
+                                right: 8px;
+                                background: none;
+                                border: none;
+                                color: white;
+                                font-size: 18px;
+                                cursor: pointer;
+                                padding: 0;
+                                width: 24px;
+                                height: 24px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                </div>
+            `);
+            
+            $('body').append(notification);
+            
+            // 5초 후 자동 제거
+            setTimeout(() => {
+                notification.fadeOut(() => notification.remove());
+            }, 5000);
+        },
+        
+        // 저장 성공 알림 표시 (선택적)
+        showSaveSuccessNotification: function(message = '대화가 저장되었습니다') {
+            console.log('✅ Showing save success notification');
+            
+            // 기존 알림 제거
+            $('.save-success-notification').remove();
+            
+            const notification = $(`
+                <div class="save-success-notification" style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #28a745;
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 6px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    z-index: 10000;
+                    font-size: 14px;
+                    opacity: 0;
+                    transform: translateX(20px);
+                    transition: all 0.3s ease;
+                ">
+                    ✅ ${message}
+                </div>
+            `);
+            
+            $('body').append(notification);
+            
+            // 애니메이션으로 표시
+            setTimeout(() => {
+                notification.css({
+                    opacity: 1,
+                    transform: 'translateX(0)'
+                });
+            }, 10);
+            
+            // 2초 후 자동 제거
+            setTimeout(() => {
+                notification.css({
+                    opacity: 0,
+                    transform: 'translateX(20px)'
+                });
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        },
+        
+        // 연결 상태 확인 및 표시
+        showConnectionStatus: function(isConnected = true) {
+            $('.connection-status').remove();
+            
+            if (!isConnected) {
+                const statusIndicator = $(`
+                    <div class="connection-status" style="
+                        position: fixed;
+                        bottom: 20px;
+                        left: 20px;
+                        background: #ffc107;
+                        color: #212529;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        z-index: 9999;
+                    ">
+                        🔌 연결 상태를 확인 중...
+                    </div>
+                `);
+                
+                $('body').append(statusIndicator);
+                
+                // 10초 후 자동 제거
+                setTimeout(() => {
+                    statusIndicator.fadeOut(() => statusIndicator.remove());
+                }, 10000);
+            }
         }
     };
     

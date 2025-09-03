@@ -3,7 +3,7 @@
  * Plugin Name: KACHI AI Search
  * Plugin URI: https://3chan.kr
  * Description: KACHI AI 기반 문서 검색 및 질의응답 시스템 - 프록시 API 지원
- * Version: 2.3.10
+ * Version: 2.4.0
  * Author: 3chan
  * Author URI: https://3chan.kr
  * License: GPL v2 or later
@@ -16,14 +16,14 @@ if (!defined('ABSPATH')) {
 }
 
 // 플러그인 상수 정의 - KACHI AI Search
-define('KACHI_AI_SEARCH_VERSION', '2.3.10');
+define('KACHI_AI_SEARCH_VERSION', '2.4.0');
 define('KACHI_AI_SEARCH_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('KACHI_AI_SEARCH_DB_VERSION', '1.0');
 
 // Legacy constants for backward compatibility
-define('KACHI_VERSION', '2.3.10');
+define('KACHI_VERSION', '2.4.0');
 define('KACHI_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -142,6 +142,10 @@ class Kachi_Query_System {
             $this->loader->add_action('wp_ajax_kachi_load_conversations', $ajax, 'load_conversations');
             $this->loader->add_action('wp_ajax_kachi_save_conversation', $ajax, 'save_conversation');
             $this->loader->add_action('wp_ajax_kachi_delete_conversation', $ajax, 'delete_conversation');
+            
+            // 디버깅 및 모니터링 AJAX 핸들러
+            $this->loader->add_action('wp_ajax_kachi_health_check', $ajax, 'health_check');
+            $this->loader->add_action('wp_ajax_kachi_system_info', $ajax, 'get_system_info');
         }
         
         // 스크립트는 필요할 때만 로드

@@ -553,84 +553,67 @@ class Kachi_Ajax {
      * 대화 저장
      */
     public function save_conversation() {
+        // 로깅 및 성능 모니터링
+        $start_time = microtime(true);
+        $user_id = get_current_user_id();
+        
+        error_log("KACHI: Starting save_conversation for user {$user_id}");
+        
         // nonce 검증
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'kachi_ajax_nonce')) {
-            wp_send_json_error(array('message' => '보안 검증 실패'));
+            error_log('KACHI: Nonce verification failed');
+            wp_send_json_error(array(
+                'message' => '보안 검증 실패',
+                'code' => 'INVALID_NONCE'
+            ));
             wp_die();
         }
         
         // 로그인 확인
         if (!is_user_logged_in()) {
-            wp_send_json_error(array('message' => '로그인이 필요합니다.'));
+            error_log('KACHI: User not logged in');
+            wp_send_json_error(array(
+                'message' => '로그인이 필요합니다.',
+                'code' => 'NOT_LOGGED_IN'
+            ));
             wp_die();
         }
         
-        // 데이터 가져오기
-        $conversation_id = isset($_POST['conversation_id']) ? sanitize_text_field($_POST['conversation_id']) : '';
-        $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '새 대화';
-        $messages = isset($_POST['messages']) ? wp_unslash($_POST['messages']) : '[]';
-        
-        if (empty($conversation_id)) {
-            wp_send_json_error(array('message' => '대화 ID가 없습니다.'));
+        // 데이터 검증 및 살마이징
+        $validation_result = $this->validate_save_data($_POST);
+        if ($validation_result['error']) {
+            error_log("KACHI: Validation failed: {$validation_result['message']}");
+            wp_send_json_error(array(
+                'message' => $validation_result['message'],
+                'code' => $validation_result['code']
+            ));
             wp_die();
         }
         
-        // JSON 유효성 검증
-        $messages_array = json_decode($messages, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            wp_send_json_error(array('message' => '메시지 데이터가 올바르지 않습니다.'));
-            wp_die();
-        }
+        $conversation_id = $validation_result['conversation_id'];
+        $title = $validation_result['title'];
+        $messages_array = $validation_result['messages'];
         
-        global $wpdb;
-        $user_id = get_current_user_id();
-        $table_name = $wpdb->prefix . 'kachi_conversations';
+        // 데이터베이스 작업 수행
+        $save_result = $this->perform_conversation_save($user_id, $conversation_id, $title, $messages_array);
         
-        // 기존 대화가 있는지 확인
-        $existing = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id FROM $table_name WHERE user_id = %d AND conversation_id = %s",
-                $user_id,
-                $conversation_id
-            )
-        );
+        // 성능 모니터링
+        $execution_time = round((microtime(true) - $start_time) * 1000, 2);
+        error_log("KACHI: Save operation completed in {$execution_time}ms, result: " . ($save_result['success'] ? 'SUCCESS' : 'FAILED'));
         
-        if ($existing) {
-            // 업데이트
-            $result = $wpdb->update(
-                $table_name,
-                array(
-                    'title' => $title,
-                    'messages' => wp_json_encode($messages_array, JSON_UNESCAPED_UNICODE),
-                    'updated_at' => current_time('mysql')
-                ),
-                array(
-                    'user_id' => $user_id,
-                    'conversation_id' => $conversation_id
-                ),
-                array('%s', '%s', '%s'),
-                array('%d', '%s')
-            );
+        if ($save_result['success']) {
+            wp_send_json_success(array(
+                'message' => $save_result['message'],
+                'execution_time' => $execution_time,
+                'operation' => $save_result['operation']
+            ));
         } else {
-            // 새로 삽입
-            $result = $wpdb->insert(
-                $table_name,
-                array(
-                    'user_id' => $user_id,
-                    'conversation_id' => $conversation_id,
-                    'title' => $title,
-                    'messages' => wp_json_encode($messages_array, JSON_UNESCAPED_UNICODE),
-                    'created_at' => current_time('mysql'),
-                    'updated_at' => current_time('mysql')
-                ),
-                array('%d', '%s', '%s', '%s', '%s', '%s')
-            );
-        }
-        
-        if ($result === false) {
-            wp_send_json_error(array('message' => '대화 저장에 실패했습니다.'));
-        } else {
-            wp_send_json_success(array('message' => '대화가 저장되었습니다.'));
+            error_log("KACHI: Database error: {$save_result['error']}");
+            wp_send_json_error(array(
+                'message' => $save_result['message'],
+                'code' => $save_result['code'],
+                'execution_time' => $execution_time
+            ));
         }
         
         wp_die();
@@ -680,6 +663,395 @@ class Kachi_Ajax {
             wp_send_json_success(array('message' => '대화가 삭제되었습니다.'));
         }
         
+        wp_die();
+    }
+    
+    /**
+     * 저장 데이터 검증
+     */
+    private function validate_save_data($post_data) {
+        // 기본 필드 검증
+        $conversation_id = isset($post_data['conversation_id']) ? sanitize_text_field($post_data['conversation_id']) : '';
+        $title = isset($post_data['title']) ? sanitize_text_field($post_data['title']) : '새 대화';
+        $messages = isset($post_data['messages']) ? wp_unslash($post_data['messages']) : '[]';
+        
+        if (empty($conversation_id)) {
+            return array(
+                'error' => true,
+                'message' => '대화 ID가 없습니다.',
+                'code' => 'MISSING_CONVERSATION_ID'
+            );
+        }
+        
+        // 제목 길이 제한
+        if (mb_strlen($title) > 255) {
+            $title = mb_substr($title, 0, 255);
+        }
+        
+        // JSON 유효성 검증
+        $messages_array = json_decode($messages, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return array(
+                'error' => true,
+                'message' => '메시지 데이터가 올바르지 않습니다: ' . json_last_error_msg(),
+                'code' => 'INVALID_JSON'
+            );
+        }
+        
+        // 메시지 배열 검증
+        if (!is_array($messages_array)) {
+            return array(
+                'error' => true,
+                'message' => '메시지 데이터는 배열이어야 합니다.',
+                'code' => 'INVALID_MESSAGE_FORMAT'
+            );
+        }
+        
+        // 메시지 개수 제한 (성능상)
+        if (count($messages_array) > 1000) {
+            error_log("KACHI: Large message count detected: " . count($messages_array));
+            // 최근 메시지만 유지
+            $messages_array = array_slice($messages_array, -1000);
+        }
+        
+        // 개별 메시지 검증 및 정리
+        $validated_messages = array();
+        foreach ($messages_array as $index => $message) {
+            $validated_message = $this->validate_message($message, $index);
+            if ($validated_message) {
+                $validated_messages[] = $validated_message;
+            }
+        }
+        
+        return array(
+            'error' => false,
+            'conversation_id' => $conversation_id,
+            'title' => $title,
+            'messages' => $validated_messages
+        );
+    }
+    
+    /**
+     * 개별 메시지 검증
+     */
+    private function validate_message($message, $index) {
+        if (!is_array($message)) {
+            error_log("KACHI: Invalid message at index {$index}: not an array");
+            return null;
+        }
+        
+        // 필수 필드 확인
+        $id = isset($message['id']) ? sanitize_text_field($message['id']) : '';
+        $type = isset($message['type']) ? sanitize_text_field($message['type']) : '';
+        $content = isset($message['content']) ? $message['content'] : '';
+        $time = isset($message['time']) ? sanitize_text_field($message['time']) : '';
+        $referenced_docs = isset($message['referencedDocs']) ? $message['referencedDocs'] : null;
+        
+        if (empty($id) || empty($type)) {
+            error_log("KACHI: Message at index {$index} missing required fields");
+            return null;
+        }
+        
+        // 콘텐츠 크기 제한 (5MB)
+        if (strlen($content) > 5242880) {
+            error_log("KACHI: Large content detected in message {$id}: " . strlen($content) . " bytes");
+            $content = substr($content, 0, 5242880) . '[...내용이 잘렸습니다...]';
+        }
+        
+        return array(
+            'id' => $id,
+            'type' => $type,
+            'content' => $content,
+            'time' => $time,
+            'referencedDocs' => $referenced_docs
+        );
+    }
+    
+    /**
+     * 대화 저장 수행
+     */
+    private function perform_conversation_save($user_id, $conversation_id, $title, $messages_array) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'kachi_conversations';
+        
+        // 트랜잭션 시작
+        $wpdb->query('START TRANSACTION');
+        
+        try {
+            // 기존 대화 확인
+            $existing = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM $table_name WHERE user_id = %d AND conversation_id = %s",
+                    $user_id,
+                    $conversation_id
+                )
+            );
+            
+            $messages_json = wp_json_encode($messages_array, JSON_UNESCAPED_UNICODE);
+            if ($messages_json === false) {
+                throw new Exception('JSON encoding failed');
+            }
+            
+            if ($existing) {
+                // 업데이트
+                $result = $wpdb->update(
+                    $table_name,
+                    array(
+                        'title' => $title,
+                        'messages' => $messages_json,
+                        'updated_at' => current_time('mysql')
+                    ),
+                    array(
+                        'user_id' => $user_id,
+                        'conversation_id' => $conversation_id
+                    ),
+                    array('%s', '%s', '%s'),
+                    array('%d', '%s')
+                );
+                
+                if ($result === false) {
+                    throw new Exception('Database update failed: ' . $wpdb->last_error);
+                }
+                
+                $operation = 'UPDATE';
+                $message = '대화가 업데이트되었습니다.';
+            } else {
+                // 새로 삽입
+                $result = $wpdb->insert(
+                    $table_name,
+                    array(
+                        'user_id' => $user_id,
+                        'conversation_id' => $conversation_id,
+                        'title' => $title,
+                        'messages' => $messages_json,
+                        'created_at' => current_time('mysql'),
+                        'updated_at' => current_time('mysql')
+                    ),
+                    array('%d', '%s', '%s', '%s', '%s', '%s')
+                );
+                
+                if ($result === false) {
+                    throw new Exception('Database insert failed: ' . $wpdb->last_error);
+                }
+                
+                $operation = 'INSERT';
+                $message = '새 대화가 생성되었습니다.';
+            }
+            
+            // 트랜잭션 커밋
+            $wpdb->query('COMMIT');
+            
+            return array(
+                'success' => true,
+                'message' => $message,
+                'operation' => $operation
+            );
+            
+        } catch (Exception $e) {
+            // 트랜잭션 롤백
+            $wpdb->query('ROLLBACK');
+            
+            return array(
+                'success' => false,
+                'message' => '대화 저장에 실패했습니다.',
+                'error' => $e->getMessage(),
+                'code' => 'DATABASE_ERROR'
+            );
+        }
+    }
+    
+    /**
+     * 시스템 상태 체크
+     */
+    public function health_check() {
+        // nonce 검증
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'kachi_ajax_nonce')) {
+            wp_send_json_error(array('message' => '보안 검증 실패'));
+            wp_die();
+        }
+        
+        // 관리자 권한 확인
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => '권한이 없습니다.'));
+            wp_die();
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'kachi_conversations';
+        
+        $health_data = array(
+            'timestamp' => current_time('c'),
+            'database' => array(),
+            'api' => array(),
+            'system' => array()
+        );
+        
+        // 데이터베이스 상태 체크
+        try {
+            // 테이블 존재 여부
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+            $health_data['database']['table_exists'] = $table_exists;
+            
+            if ($table_exists) {
+                // 총 대화 수
+                $total_conversations = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+                $health_data['database']['total_conversations'] = intval($total_conversations);
+                
+                // 최근 7일간 대화 수
+                $recent_conversations = $wpdb->get_var(
+                    "SELECT COUNT(*) FROM $table_name WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+                );
+                $health_data['database']['recent_conversations'] = intval($recent_conversations);
+                
+                // 평균 메시지 수
+                $avg_messages = $wpdb->get_var(
+                    "SELECT AVG(JSON_LENGTH(messages)) FROM $table_name WHERE messages IS NOT NULL"
+                );
+                $health_data['database']['avg_messages_per_conversation'] = round(floatval($avg_messages), 2);
+                
+                // 데이터베이스 크기 (근사치)
+                $table_size = $wpdb->get_var(
+                    "SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'DB Size in MB' 
+                     FROM information_schema.tables 
+                     WHERE table_schema = DATABASE() 
+                     AND table_name = '$table_name'"
+                );
+                $health_data['database']['size_mb'] = floatval($table_size);
+            }
+            
+            $health_data['database']['status'] = 'healthy';
+        } catch (Exception $e) {
+            $health_data['database']['status'] = 'error';
+            $health_data['database']['error'] = $e->getMessage();
+        }
+        
+        // API 상태 체크
+        $options = get_option('kachi_settings', array());
+        $api_url = isset($options['threechan_api_internal_url']) ? $options['threechan_api_internal_url'] : '';
+        
+        if (!empty($api_url)) {
+            $api_health_url = trailingslashit($api_url) . 'health';
+            $response = wp_remote_get($api_health_url, array('timeout' => 5));
+            
+            if (is_wp_error($response)) {
+                $health_data['api']['status'] = 'error';
+                $health_data['api']['error'] = $response->get_error_message();
+            } else {
+                $status_code = wp_remote_retrieve_response_code($response);
+                $health_data['api']['status'] = $status_code === 200 ? 'healthy' : 'warning';
+                $health_data['api']['response_code'] = $status_code;
+                $health_data['api']['response_time'] = 'N/A'; // WordPress doesn't provide timing info
+            }
+        } else {
+            $health_data['api']['status'] = 'not_configured';
+        }
+        
+        // 시스템 상태
+        $health_data['system'] = array(
+            'php_version' => PHP_VERSION,
+            'wordpress_version' => get_bloginfo('version'),
+            'plugin_version' => KACHI_AI_SEARCH_VERSION,
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'user_count' => count_users()['total_users']
+        );
+        
+        // 전체 상태 결정
+        $overall_status = 'healthy';
+        if ($health_data['database']['status'] === 'error' || $health_data['api']['status'] === 'error') {
+            $overall_status = 'critical';
+        } elseif ($health_data['api']['status'] === 'warning' || $health_data['api']['status'] === 'not_configured') {
+            $overall_status = 'warning';
+        }
+        
+        $health_data['overall_status'] = $overall_status;
+        
+        wp_send_json_success($health_data);
+        wp_die();
+    }
+    
+    /**
+     * 시스템 정보 가져오기
+     */
+    public function get_system_info() {
+        // nonce 검증
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'kachi_ajax_nonce')) {
+            wp_send_json_error(array('message' => '보안 검증 실패'));
+            wp_die();
+        }
+        
+        // 관리자 권한 확인
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => '권한이 없습니다.'));
+            wp_die();
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'kachi_conversations';
+        
+        $system_info = array(
+            'timestamp' => current_time('c'),
+            'environment' => array(
+                'php' => array(
+                    'version' => PHP_VERSION,
+                    'sapi' => php_sapi_name(),
+                    'memory_limit' => ini_get('memory_limit'),
+                    'max_execution_time' => ini_get('max_execution_time'),
+                    'post_max_size' => ini_get('post_max_size'),
+                    'upload_max_filesize' => ini_get('upload_max_filesize')
+                ),
+                'wordpress' => array(
+                    'version' => get_bloginfo('version'),
+                    'multisite' => is_multisite(),
+                    'debug' => defined('WP_DEBUG') && WP_DEBUG,
+                    'language' => get_locale()
+                ),
+                'server' => array(
+                    'software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                    'php_max_vars' => ini_get('max_input_vars'),
+                    'mysql_version' => $wpdb->db_version()
+                )
+            ),
+            'plugin' => array(
+                'version' => KACHI_AI_SEARCH_VERSION,
+                'database_version' => get_option('kachi_db_version', '1.0'),
+                'settings' => get_option('kachi_settings', array())
+            ),
+            'performance' => array(
+                'active_plugins' => count(get_option('active_plugins', array())),
+                'current_theme' => wp_get_theme()->get('Name'),
+                'total_users' => count_users()['total_users']
+            )
+        );
+        
+        // 데이터베이스 통계
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name) {
+            $db_stats = array();
+            
+            // 기본 통계
+            $db_stats['total_conversations'] = intval($wpdb->get_var("SELECT COUNT(*) FROM $table_name"));
+            $db_stats['total_users_with_conversations'] = intval($wpdb->get_var("SELECT COUNT(DISTINCT user_id) FROM $table_name"));
+            
+            // 날짜별 통계
+            $db_stats['conversations_last_24h'] = intval($wpdb->get_var(
+                "SELECT COUNT(*) FROM $table_name WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+            ));
+            $db_stats['conversations_last_7d'] = intval($wpdb->get_var(
+                "SELECT COUNT(*) FROM $table_name WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
+            ));
+            $db_stats['conversations_last_30d'] = intval($wpdb->get_var(
+                "SELECT COUNT(*) FROM $table_name WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            ));
+            
+            // 메시지 통계
+            $db_stats['avg_messages'] = round(floatval($wpdb->get_var(
+                "SELECT AVG(JSON_LENGTH(messages)) FROM $table_name WHERE messages IS NOT NULL"
+            )), 2);
+            
+            $system_info['database'] = $db_stats;
+        }
+        
+        wp_send_json_success($system_info);
         wp_die();
     }
 }

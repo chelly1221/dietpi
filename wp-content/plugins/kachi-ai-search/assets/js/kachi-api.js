@@ -567,14 +567,11 @@
                             if (referencedDocs) {
                                 message.referencedDocs = referencedDocs.outerHTML;
                             }
-                            console.log("💾 Partial message saved (stopped):", message);
                             
-                            // 짧은 지연을 두고 저장하여 중지된 콘텐츠도 완전히 처리된 후 저장
-                            setTimeout(() => {
-                                console.log("⏰ Triggering conversation save after partial content processing...");
-                                KachiCore.updateCurrentConversation();
-                                KachiUI.renderConversationList(false);
-                            }, 100);
+                            // 부분 콘텐츠 저장
+                            this._finalizeStreamingMessage(message);
+                        } else {
+                            console.warn('⚠️ Failed to save partial content after stop');
                         }
                     }
                 } else {
@@ -1414,6 +1411,212 @@
             });
             
             return htmlStr;
+        },
+        
+        // 향상된 스트리밍 콘텐츠 캡처 (다중 폴백 메커니즘)
+        _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
+            console.log(`🔍 Capturing streaming content for message ${messageId} (partial: ${isPartial})`);
+            
+            let finalContent = '';
+            const captureStrategies = [];
+            
+            try {
+                // 전략 1: 스트림 버퍼 사용 (우선)
+                if (KachiCore.streamBuffer && KachiCore.streamBuffer.trim()) {
+                    const bufferContent = this._processStreamContent(KachiCore.streamBuffer);
+                    if (bufferContent && bufferContent.trim()) {
+                        captureStrategies.push({
+                            strategy: 'stream_buffer',
+                            content: bufferContent,
+                            length: bufferContent.length
+                        });
+                    }
+                }
+                
+                // 전략 2: DOM에서 텍스트 추출
+                const textElement = messageElement.querySelector('.message-text');
+                if (textElement) {
+                    const domContent = this._extractContentFromDOM(textElement);
+                    if (domContent && domContent.trim()) {
+                        captureStrategies.push({
+                            strategy: 'dom_extraction',
+                            content: domContent,
+                            length: domContent.length
+                        });
+                    }
+                }
+                
+                // 전략 3: 전체 메시지 HTML 추출 (최후 수단)
+                const fullHTML = messageElement.innerHTML;
+                if (fullHTML && fullHTML.trim()) {
+                    const cleanedHTML = this._extractContentFromFullHTML(fullHTML);
+                    if (cleanedHTML && cleanedHTML.trim()) {
+                        captureStrategies.push({
+                            strategy: 'full_html',
+                            content: cleanedHTML,
+                            length: cleanedHTML.length
+                        });
+                    }
+                }
+                
+                // 최적의 전략 선택 (가장 긴 콘텐츠)
+                if (captureStrategies.length > 0) {
+                    const bestStrategy = captureStrategies.reduce((prev, current) => 
+                        current.length > prev.length ? current : prev
+                    );
+                    
+                    finalContent = bestStrategy.content;
+                    console.log(`✅ Content captured using ${bestStrategy.strategy}:`, {
+                        strategyCount: captureStrategies.length,
+                        selectedStrategy: bestStrategy.strategy,
+                        contentLength: bestStrategy.length,
+                        contentPreview: finalContent.substring(0, 100)
+                    });
+                    
+                    // 복구 메트릭 기록 (fallback 전략 사용 시)
+                    if (bestStrategy.strategy !== 'stream_buffer' && KachiCore.debug) {
+                        KachiCore.debug.recordRecovery();
+                    }
+                } else {
+                    console.warn('⚠️ No content capture strategies succeeded');
+                    finalContent = '';
+                    
+                    // 콘텐츠 손실 메트릭 기록
+                    if (KachiCore.debug) {
+                        KachiCore.debug.recordContentLoss();
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Error during content capture:', error);
+                finalContent = '';
+            }
+            
+            return finalContent;
+        },
+        
+        // 스트림 콘텐츠 처리
+        _processStreamContent: function(streamBuffer) {
+            try {
+                if (!streamBuffer || !streamBuffer.trim()) {
+                    return '';
+                }
+                
+                // 1. 이미지 태그 수정
+                const fixedContent = this.fixImgTags(streamBuffer);
+                
+                // 2. 저장을 위해 이미지 URL 처리 (원본 URL 유지)
+                const storageContent = this.processImageUrlsForStorage(fixedContent);
+                
+                // 3. MathJax 콘텐츠 정리
+                const cleanedContent = this.cleanMathJaxContent(storageContent);
+                
+                return cleanedContent || '';
+            } catch (error) {
+                console.error('❌ Error processing stream content:', error);
+                return streamBuffer; // 원본 반환
+            }
+        },
+        
+        // DOM에서 콘텐츠 추출
+        _extractContentFromDOM: function(textElement) {
+            try {
+                // innerHTML 우선 시도
+                let content = textElement.innerHTML;
+                if (content && content.trim()) {
+                    return this._processStreamContent(content);
+                }
+                
+                // textContent 시도
+                content = textElement.textContent || textElement.innerText;
+                if (content && content.trim()) {
+                    return content;
+                }
+                
+                return '';
+            } catch (error) {
+                console.error('❌ Error extracting content from DOM:', error);
+                return '';
+            }
+        },
+        
+        // 전체 HTML에서 콘텐츠 추출
+        _extractContentFromFullHTML: function(fullHTML) {
+            try {
+                // 임시 DOM 요소 생성
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = fullHTML;
+                
+                // .message-text 요소 찾기
+                const messageText = tempDiv.querySelector('.message-text');
+                if (messageText) {
+                    const content = messageText.innerHTML;
+                    if (content && content.trim()) {
+                        return this._processStreamContent(content);
+                    }
+                }
+                
+                // 전체 텍스트 추출 시도
+                const textContent = tempDiv.textContent || tempDiv.innerText;
+                if (textContent && textContent.trim()) {
+                    return textContent;
+                }
+                
+                return '';
+            } catch (error) {
+                console.error('❌ Error extracting content from full HTML:', error);
+                return '';
+            }
+        },
+        
+        // 스트리밍 메시지 최종 처리
+        _finalizeStreamingMessage: function(message) {
+            try {
+                console.log('📦 Finalizing streaming message:', {
+                    messageId: message.id,
+                    hasContent: !!message.content,
+                    contentLength: message.content ? message.content.length : 0
+                });
+                
+                // 대화 업데이트 (디바운싱 적용)
+                setTimeout(() => {
+                    console.log('💾 Updating conversation after streaming completion...');
+                    KachiCore.updateCurrentConversation({ skipSave: false });
+                    
+                    // UI 업데이트
+                    if (window.KachiUI && window.KachiUI.renderConversationList) {
+                        window.KachiUI.renderConversationList(false);
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Error finalizing streaming message:', error);
+            }
+        },
+        
+        // 스트리밍 실패 처리
+        _handleStreamingFailure: function(messageElement, messageId) {
+            console.warn('⚠️ Handling streaming failure for message:', messageId);
+            
+            try {
+                // 마지막 시도: DOM에서 어떤 콘텐츠든 추출
+                const fallbackContent = this._extractContentFromDOM(
+                    messageElement.querySelector('.message-text')
+                ) || '❌ 콘텐츠를 불러올 수 없습니다.';
+                
+                const message = KachiCore.findMessage(messageId);
+                if (message) {
+                    message.content = fallbackContent;
+                    console.log('🔄 Fallback content saved:', {
+                        messageId: message.id,
+                        contentLength: fallbackContent.length
+                    });
+                    
+                    this._finalizeStreamingMessage(message);
+                }
+            } catch (error) {
+                console.error('❌ Error in streaming failure handler:', error);
+            }
         }
     };
     

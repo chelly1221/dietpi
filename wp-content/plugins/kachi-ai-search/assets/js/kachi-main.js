@@ -79,6 +79,16 @@
         // 1. Core 모듈 초기화 (상태 관리)
         KachiCore.init();
         
+        // 디버그 도구 노출 (개발 환경에서)
+        if (window.location.hostname.includes('localhost') || 
+            window.location.hostname.includes('192.168') || 
+            window.location.hostname.includes('.local') ||
+            window.location.hostname.includes('kac.chelly.kr')) {
+            KachiCore.exposeDebugTools();
+            KachiCore.debug.startMonitoring(5); // 5분마다 모니터링
+            console.log('🛠️ Debug mode enabled - monitoring started');
+        }
+        
         // 2. UI 모듈 초기화 (화면 렌더링)
         KachiUI.init();
         
