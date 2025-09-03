@@ -436,7 +436,8 @@
                     }
                 }
 
-                if (KachiCore.streamBuffer) {
+                // 스트리밍 버퍼가 비어있지 않은 경우에만 최종 처리
+                if (KachiCore.streamBuffer && KachiCore.streamBuffer.trim()) {
                     // 타이머 정리
                     if (KachiCore.typeTimer) {
                         clearTimeout(KachiCore.typeTimer);
@@ -444,7 +445,27 @@
                     KachiCore.isCharStreaming = false;
                     KachiCore.displayedLength = 0;
                     
+                    console.log("🔍 Debug: Final flush with non-empty stream buffer:", {
+                        bufferLength: KachiCore.streamBuffer.length,
+                        bufferPreview: KachiCore.streamBuffer.substring(0, 200)
+                    });
+                    
                     this.tryFlushStreamBuffer(messageElement, true);
+                } else {
+                    console.warn("⚠️ Warning: Stream buffer is empty at completion, using fallback content extraction");
+                    
+                    // 스트리밍 버퍼가 비어있으면 DOM에서 콘텐츠 추출 시도
+                    const textElement = messageElement.querySelector('.message-text');
+                    if (textElement) {
+                        const extractedContent = textElement.textContent || textElement.innerText || textElement.innerHTML;
+                        if (extractedContent && extractedContent.trim()) {
+                            console.log("🔄 Extracted fallback content from DOM:", {
+                                contentLength: extractedContent.length,
+                                contentPreview: extractedContent.substring(0, 100)
+                            });
+                            KachiCore.streamBuffer = extractedContent;
+                        }
+                    }
                 }
                 
                 // 스트리밍 완료 후 최종 MathJax 렌더링
@@ -452,12 +473,37 @@
                 
                 // 스트리밍 완료 후 최종 메시지 업데이트
                 // 저장용: 원본 URL을 유지한 콘텐츠 생성
+                console.log("🔍 Debug: Stream buffer before processing:", {
+                    bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0,
+                    bufferPreview: KachiCore.streamBuffer ? KachiCore.streamBuffer.substring(0, 100) : 'EMPTY BUFFER'
+                });
+                
                 const rawContent = this.fixImgTags(KachiCore.streamBuffer);
+                console.log("🔍 Debug: After fixImgTags:", {
+                    contentLength: rawContent ? rawContent.length : 0,
+                    contentPreview: rawContent ? rawContent.substring(0, 100) : 'EMPTY RAW CONTENT'
+                });
+                
                 const storageContent = this.processImageUrlsForStorage(rawContent);
+                console.log("🔍 Debug: After processImageUrlsForStorage:", {
+                    contentLength: storageContent ? storageContent.length : 0,
+                    contentPreview: storageContent ? storageContent.substring(0, 100) : 'EMPTY STORAGE CONTENT'
+                });
+                
                 const finalStorageContent = this.cleanMathJaxContent(storageContent);
+                console.log("🔍 Debug: After cleanMathJaxContent:", {
+                    contentLength: finalStorageContent ? finalStorageContent.length : 0,
+                    contentPreview: finalStorageContent ? finalStorageContent.substring(0, 100) : 'EMPTY FINAL CONTENT'
+                });
                 
                 const message = KachiCore.findMessage(messageId);
                 if (message) {
+                    // 최종 저장 콘텐츠가 비어있으면 원본 스트리밍 버퍼 사용
+                    if (!finalStorageContent || !finalStorageContent.trim()) {
+                        console.warn("⚠️ Final storage content is empty, using original stream buffer");
+                        finalStorageContent = KachiCore.streamBuffer || '';
+                    }
+                    
                     // 저장용 콘텐츠는 원본 URL 유지
                     message.content = finalStorageContent;
                     console.log("💾 Saving content with original URLs for LLM compatibility");
@@ -506,8 +552,19 @@
                         const storagePartialContent = this.processImageUrlsForStorage(rawPartialContent);
                         const finalPartialContent = this.cleanMathJaxContent(storagePartialContent);
                         
+                        console.log("🔍 Debug: Partial stream buffer before processing:", {
+                            bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0,
+                            bufferPreview: KachiCore.streamBuffer ? KachiCore.streamBuffer.substring(0, 100) : 'EMPTY PARTIAL BUFFER'
+                        });
+                        
                         const message = KachiCore.findMessage(messageId);
                         if (message) {
+                            // 중지된 경우도 최종 콘텐츠가 비어있으면 원본 버퍼 사용
+                            if (!finalPartialContent || !finalPartialContent.trim()) {
+                                console.warn("⚠️ Final partial content is empty, using original stream buffer");
+                                finalPartialContent = KachiCore.streamBuffer || '';
+                            }
+                            
                             // 저장용 콘텐츠는 원본 URL 유지 (중지된 경우)
                             message.content = finalPartialContent;
                             console.log("💾 Saving partial content with original URLs for LLM compatibility");
@@ -552,15 +609,36 @@
         
         // MathJax 렌더링된 내용 정리
         cleanMathJaxContent: function(html) {
+            console.log("🔍 Debug: cleanMathJaxContent input:", {
+                inputLength: html ? html.length : 0,
+                inputPreview: html ? html.substring(0, 100) : 'EMPTY INPUT'
+            });
+            
+            // 빈 내용이면 그대로 반환
+            if (!html || html.trim() === '') {
+                console.log("⚠️ Warning: cleanMathJaxContent received empty input");
+                return html;
+            }
+            
             // 임시 요소 생성
             const temp = document.createElement('div');
             temp.innerHTML = html;
             
-            // MathJax가 렌더링한 요소들 제거
+            // MathJax가 렌더링한 요소들 제거 (텍스트 콘텐츠 보존)
             const mjxElements = temp.querySelectorAll('mjx-container, .MathJax, .MathJax_Display, .MathJax_Preview, .MathJax_CHTML');
-            mjxElements.forEach(el => el.remove());
+            mjxElements.forEach(el => {
+                // 요소를 제거하기 전에 텍스트 내용이 있는지 확인
+                const textContent = el.textContent || el.innerText;
+                if (textContent && textContent.trim()) {
+                    console.log("🔍 Debug: Preserving text from MathJax element:", textContent.substring(0, 50));
+                    // 부모 요소에 텍스트 추가 (MathJax 렌더링 대신)
+                    const textNode = document.createTextNode(textContent);
+                    el.parentNode.insertBefore(textNode, el);
+                }
+                el.remove();
+            });
             
-            // MathJax 처리 마커 제거
+            // MathJax 처리 마커 제거 (하지만 수식 자체는 보존)
             const scriptElements = temp.querySelectorAll('script[type*="math/tex"]');
             scriptElements.forEach(el => el.remove());
             
@@ -570,7 +648,13 @@
                 el.removeAttribute('data-mjx-texclass');
             });
             
-            return temp.innerHTML;
+            const result = temp.innerHTML;
+            console.log("🔍 Debug: cleanMathJaxContent output:", {
+                outputLength: result ? result.length : 0,
+                outputPreview: result ? result.substring(0, 100) : 'EMPTY OUTPUT'
+            });
+            
+            return result;
         },
         
         // 쿼리 문서 정보 가져오기 - 프록시 방식

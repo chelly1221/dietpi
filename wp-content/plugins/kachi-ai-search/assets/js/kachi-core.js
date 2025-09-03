@@ -243,6 +243,7 @@
             console.log("🔍 Content being saved to database:", {
                 conversationId: this.currentConversationId,
                 messageCount: this.chatHistory.length,
+                conversationMessageCount: conversation.messages ? conversation.messages.length : 0,
                 messages: this.chatHistory.map(msg => ({
                     id: msg.id,
                     type: msg.type,
@@ -252,7 +253,20 @@
                 }))
             });
             
-            // 현재 대화 저장
+            // 대화 객체의 messages를 현재 chatHistory로 업데이트
+            conversation.messages = [...this.chatHistory];
+            
+            console.log("💾 Updated conversation.messages with current chatHistory:", {
+                updatedMessageCount: conversation.messages.length,
+                messagesPreview: conversation.messages.map(msg => ({
+                    id: msg.id,
+                    type: msg.type,
+                    hasContent: !!msg.content,
+                    contentLength: msg.content ? msg.content.length : 0
+                }))
+            });
+            
+            // 현재 대화 저장 - 업데이트된 conversation.messages 사용
             $.ajax({
                 url: window.kachi_ajax?.ajax_url,
                 type: 'POST',
@@ -347,8 +361,36 @@
             
             const conversation = this.conversations.find(c => c.id === this.currentConversationId);
             if (conversation) {
-                conversation.messages = [...this.chatHistory];
+                console.log("🔄 updateCurrentConversation - Before update:", {
+                    conversationId: this.currentConversationId,
+                    currentChatHistoryLength: this.chatHistory.length,
+                    existingMessagesLength: conversation.messages ? conversation.messages.length : 0,
+                    chatHistoryPreview: this.chatHistory.map(msg => ({
+                        id: msg.id,
+                        type: msg.type,
+                        hasContent: !!msg.content,
+                        contentLength: msg.content ? msg.content.length : 0
+                    }))
+                });
+                
+                // 현재 chatHistory로 메시지 업데이트 (깊은 복사)
+                conversation.messages = this.chatHistory.map(msg => ({
+                    ...msg,
+                    // 어시스턴트 메시지의 경우 콘텐츠 보장
+                    content: msg.content || '',
+                    referencedDocs: msg.referencedDocs || null
+                }));
                 conversation.updatedAt = new Date().toISOString();
+                
+                console.log("🔄 updateCurrentConversation - After update:", {
+                    updatedMessagesLength: conversation.messages.length,
+                    updatedMessagesPreview: conversation.messages.map(msg => ({
+                        id: msg.id,
+                        type: msg.type,
+                        hasContent: !!msg.content,
+                        contentLength: msg.content ? msg.content.length : 0
+                    }))
+                });
                 
                 // 첫 메시지로 제목 자동 설정 (원본 메시지 사용)
                 if (conversation.title === '새 대화' && this.chatHistory.length > 0) {
