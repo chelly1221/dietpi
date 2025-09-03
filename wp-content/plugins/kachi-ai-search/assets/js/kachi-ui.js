@@ -16,6 +16,14 @@
                     this.renderConversationList();
                     this.initScrollListener();
                 }, 500);
+                
+                // 대화 복원 확인 및 채팅 인터페이스 렌더링
+                setTimeout(() => {
+                    if (KachiCore.currentConversationId && KachiCore.chatHistory.length > 0) {
+                        console.log(`🔄 Rendering restored conversation: ${KachiCore.currentConversationId}`);
+                        this.renderChatHistory();
+                    }
+                }, 800); // 대화 로드 후 약간의 추가 시간
             } else {
                 // 비로그인 사용자에게 메시지 표시
                 $('.conversation-list').html('<div class="empty-state">로그인 후 대화 기록을 볼 수 있습니다</div>');

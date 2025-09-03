@@ -91,6 +91,17 @@
                         
                         console.log(`📚 Loaded conversations from DB: ${response.data.conversations.length} items, page ${this.currentPage}`);
                         
+                        // 페이지 로드 시 가장 최근 대화 자동 복원 (append가 아닌 경우에만)
+                        if (!append && this.conversations.length > 0 && !this.currentConversationId) {
+                            const mostRecentConversation = this.conversations[0]; // 가장 최근에 업데이트된 대화
+                            this.currentConversationId = mostRecentConversation.id;
+                            this.chatHistory = mostRecentConversation.messages.map(msg => ({
+                                ...msg,
+                                referencedDocs: msg.referencedDocs || null
+                            }));
+                            console.log(`🔄 Auto-restored most recent conversation: ${mostRecentConversation.id} with ${this.chatHistory.length} messages`);
+                        }
+                        
                         // UI 업데이트 트리거
                         if (window.KachiUI && window.KachiUI.renderConversationList) {
                             window.KachiUI.renderConversationList(append);
