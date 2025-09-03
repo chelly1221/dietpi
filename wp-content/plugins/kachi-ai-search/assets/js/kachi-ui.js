@@ -17,13 +17,8 @@
                     this.initScrollListener();
                 }, 500);
                 
-                // 대화 복원 확인 및 채팅 인터페이스 렌더링
-                setTimeout(() => {
-                    if (KachiCore.currentConversationId && KachiCore.chatHistory.length > 0) {
-                        console.log(`🔄 Rendering restored conversation: ${KachiCore.currentConversationId}`);
-                        this.renderChatHistory();
-                    }
-                }, 800); // 대화 로드 후 약간의 추가 시간
+                // Note: 대화 복원과 채팅 렌더링은 이제 Core에서 직접 처리됨
+                // 더이상 여기서 별도 setTimeout이 필요하지 않음
             } else {
                 // 비로그인 사용자에게 메시지 표시
                 $('.conversation-list').html('<div class="empty-state">로그인 후 대화 기록을 볼 수 있습니다</div>');
@@ -504,7 +499,10 @@
         
         // 대화 불러오기
         loadConversation: function(conversationId) {
+            console.log(`📖 Loading conversation: ${conversationId}`);
+            
             if (KachiCore.loadConversation(conversationId)) {
+                console.log(`✅ Successfully loaded conversation: ${conversationId}, messages: ${KachiCore.chatHistory.length}`);
                 this.renderChatHistory();
                 this.renderConversationList(false);
                 
@@ -512,6 +510,8 @@
                 if ($(window).width() <= 768) {
                     this.closeSidebar();
                 }
+            } else {
+                console.error(`❌ Failed to load conversation: ${conversationId}`);
             }
         },
         
@@ -556,10 +556,24 @@
         renderChatHistory: function() {
             $('.chat-messages').empty();
             
-            KachiCore.chatHistory.forEach(message => {
-                // AI 메시지이고 content가 비어있으면 건너뛰기 (스트리밍 시작용 빈 메시지)
-                if (message.type === 'assistant' && !message.content) {
+            console.log(`🔄 Rendering chat history: ${KachiCore.chatHistory.length} messages`);
+            
+            KachiCore.chatHistory.forEach((message, index) => {
+                // 메시지 유효성 검증
+                if (!message || !message.type) {
+                    console.warn(`⚠️ Invalid message at index ${index}:`, message);
                     return;
+                }
+                
+                // 스트리밍 중 생성된 빈 assistant 메시지만 필터링 (id가 없거나 임시 메시지)
+                if (message.type === 'assistant' && (!message.content || message.content.trim() === '')) {
+                    // 메시지에 ID가 없거나 임시 메시지인 경우에만 건너뛰기
+                    if (!message.id || message.id.includes('temp-') || message.isTemporary) {
+                        console.log(`🚫 Filtering empty streaming message:`, message.id);
+                        return;
+                    }
+                    // 정상적인 빈 assistant 메시지는 렌더링 (복원된 메시지일 수 있음)
+                    console.log(`✅ Rendering empty assistant message (restored):`, message.id);
                 }
                 
                 const messageHtml = this.createMessageHtml(message);

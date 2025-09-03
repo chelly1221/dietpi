@@ -95,11 +95,34 @@
                         if (!append && this.conversations.length > 0 && !this.currentConversationId) {
                             const mostRecentConversation = this.conversations[0]; // 가장 최근에 업데이트된 대화
                             this.currentConversationId = mostRecentConversation.id;
-                            this.chatHistory = mostRecentConversation.messages.map(msg => ({
-                                ...msg,
-                                referencedDocs: msg.referencedDocs || null
-                            }));
-                            console.log(`🔄 Auto-restored most recent conversation: ${mostRecentConversation.id} with ${this.chatHistory.length} messages`);
+                            
+                            // 메시지 복원 시 유효성 검증 추가
+                            this.chatHistory = mostRecentConversation.messages.map((msg, index) => {
+                                // 메시지 구조 검증
+                                if (!msg || typeof msg !== 'object') {
+                                    console.warn(`⚠️ Invalid message at index ${index}:`, msg);
+                                    return null;
+                                }
+                                
+                                return {
+                                    ...msg,
+                                    id: msg.id || `restored-${Date.now()}-${index}`,
+                                    type: msg.type || 'unknown',
+                                    content: msg.content || '',
+                                    time: msg.time || new Date().toLocaleTimeString('ko-KR'),
+                                    referencedDocs: msg.referencedDocs || null
+                                };
+                            }).filter(msg => msg !== null); // null 메시지 제거
+                            
+                            console.log(`🔄 Auto-restored conversation: ${mostRecentConversation.id} with ${this.chatHistory.length} valid messages`);
+                            
+                            // 즉시 UI 렌더링 트리거 (setTimeout 없이)
+                            if (window.KachiUI && window.KachiUI.renderChatHistory) {
+                                console.log(`🎨 Triggering immediate chat UI render`);
+                                setTimeout(() => {
+                                    window.KachiUI.renderChatHistory();
+                                }, 100); // 최소한의 지연만
+                            }
                         }
                         
                         // UI 업데이트 트리거
