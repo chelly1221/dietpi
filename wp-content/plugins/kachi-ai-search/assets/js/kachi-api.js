@@ -345,13 +345,17 @@
             // 먼저 문서 정보 가져오기
             await this.fetchQueryDocuments(userQuery, messageElement);
             
-            // 스트림 버퍼 초기화
+            // 스트림 버퍼 초기화 및 콘텐츠 보존 준비
             KachiCore.streamBuffer = "";
             KachiCore.displayedLength = 0;
             KachiCore.isCharStreaming = false;
             if (KachiCore.typeTimer) {
                 clearTimeout(KachiCore.typeTimer);
             }
+            
+            // 콘텐츠 보존을 위한 백업 시스템 초기화
+            KachiCore.contentBackups = [];
+            KachiCore.lastContentSnapshot = '';
             
             KachiCore.controller = new AbortController();
             $('#stopButton').show();
@@ -422,6 +426,9 @@
                                 KachiCore.streamBuffer += safeHTML;
                                 this.tryFlushStreamBuffer(messageElement);
                                 KachiUI.scrollToBottom();
+                                
+                                // 콘텐츠 보존을 위한 주기적 스냅샷
+                                this._createContentSnapshot(messageElement, safeHTML);
 
                                 // 주기적으로 수식 렌더링 실행
                                 const currentTime = Date.now();
@@ -471,57 +478,40 @@
                 // 스트리밍 완료 후 최종 MathJax 렌더링
                 this.renderMathInElement(messageElement);
                 
-                // 스트리밍 완료 후 최종 메시지 업데이트
-                // 저장용: 원본 URL을 유지한 콘텐츠 생성
-                console.log("🔍 Debug: Stream buffer before processing:", {
-                    bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0,
-                    bufferPreview: KachiCore.streamBuffer ? KachiCore.streamBuffer.substring(0, 100) : 'EMPTY BUFFER'
-                });
-                
-                const rawContent = this.fixImgTags(KachiCore.streamBuffer);
-                console.log("🔍 Debug: After fixImgTags:", {
-                    contentLength: rawContent ? rawContent.length : 0,
-                    contentPreview: rawContent ? rawContent.substring(0, 100) : 'EMPTY RAW CONTENT'
-                });
-                
-                const storageContent = this.processImageUrlsForStorage(rawContent);
-                console.log("🔍 Debug: After processImageUrlsForStorage:", {
-                    contentLength: storageContent ? storageContent.length : 0,
-                    contentPreview: storageContent ? storageContent.substring(0, 100) : 'EMPTY STORAGE CONTENT'
-                });
-                
-                const finalStorageContent = this.cleanMathJaxContent(storageContent);
-                console.log("🔍 Debug: After cleanMathJaxContent:", {
-                    contentLength: finalStorageContent ? finalStorageContent.length : 0,
-                    contentPreview: finalStorageContent ? finalStorageContent.substring(0, 100) : 'EMPTY FINAL CONTENT'
+                // 스트리밍 완료 후 최종 메시지 업데이트 (개선된 버전)
+                const finalContent = this._captureStreamingContent(messageElement, messageId);
+                console.log("✅ Final streaming content captured:", {
+                    hasContent: !!finalContent,
+                    contentLength: finalContent ? finalContent.length : 0,
+                    contentPreview: finalContent ? finalContent.substring(0, 100) : 'NO FINAL CONTENT',
+                    messageId: messageId
                 });
                 
                 const message = KachiCore.findMessage(messageId);
-                if (message) {
-                    // 저장용 콘텐츠는 원본 URL 유지
-                    message.content = finalStorageContent;
-                    console.log("💾 Saving content with original URLs for LLM compatibility");
-                    console.log("🔍 Content being saved:", {
-                        hasContent: !!finalStorageContent,
-                        contentLength: finalStorageContent ? finalStorageContent.length : 0,
-                        contentPreview: finalStorageContent ? finalStorageContent.substring(0, 100) : 'EMPTY CONTENT',
-                        messageId: message.id,
-                        messageType: message.type
-                    });
+                if (message && finalContent) {
+                    // 업데이트된 콘텐츠를 메시지에 저장
+                    message.content = finalContent;
                     
-                    // 참조 문서 정보도 저장
+                    // 참조 문서 정보 수집
                     const referencedDocs = messageElement.querySelector('.referenced-docs');
                     if (referencedDocs) {
                         message.referencedDocs = referencedDocs.outerHTML;
+                        console.log('📄 Referenced docs captured for message');
                     }
-                    console.log("💾 Message saved:", message);
                     
-                    // 짧은 지연을 두고 저장하여 콘텐츠가 완전히 처리된 후 저장
-                    setTimeout(() => {
-                        console.log("⏰ Triggering conversation save after content processing...");
-                        KachiCore.updateCurrentConversation();
-                        KachiUI.renderConversationList(false);
-                    }, 100);
+                    console.log("💾 Message content saved:", {
+                        messageId: message.id,
+                        hasContent: !!message.content,
+                        contentLength: message.content ? message.content.length : 0,
+                        hasReferencedDocs: !!message.referencedDocs
+                    });
+                    
+                    // 상태 전파 및 저장 (디바운싱 적용)
+                    this._finalizeStreamingMessage(message);
+                } else {
+                    console.error('❌ Failed to capture streaming content or find message');
+                    // 실패 시 폴백 시도
+                    this._handleStreamingFailure(messageElement, messageId);
                 }
                 
                 // 입력창에 포커스 주기
@@ -541,32 +531,24 @@
                         const stoppedMsg = window.kachi_ajax?.strings?.stopped || "사용자에 의해 중지되었습니다.";
                         textElement.innerHTML += `<div style="margin-top:10px; color:#a70638;">■ ${stoppedMsg}</div>`;
                         
-                        // 중지된 경우에도 현재까지의 내용을 저장 (원본 URL 유지)
-                        const rawPartialContent = this.fixImgTags(KachiCore.streamBuffer);
-                        const storagePartialContent = this.processImageUrlsForStorage(rawPartialContent);
-                        const finalPartialContent = this.cleanMathJaxContent(storagePartialContent);
-                        
-                        console.log("🔍 Debug: Partial stream buffer before processing:", {
-                            bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0,
-                            bufferPreview: KachiCore.streamBuffer ? KachiCore.streamBuffer.substring(0, 100) : 'EMPTY PARTIAL BUFFER'
+                        // 중지된 경우도 새로운 캡처 시스템 사용
+                        const partialContent = this._captureStreamingContent(messageElement, messageId, true);
+                        console.log('⚠️ Capturing partial content after user stop:', {
+                            hasContent: !!partialContent,
+                            contentLength: partialContent ? partialContent.length : 0
                         });
                         
                         const message = KachiCore.findMessage(messageId);
-                        if (message) {
-                            // 저장용 콘텐츠는 원본 URL 유지 (중지된 경우)
-                            message.content = finalPartialContent;
-                            console.log("💾 Saving partial content with original URLs for LLM compatibility");
-                            console.log("🔍 Partial content being saved:", {
-                                hasContent: !!finalPartialContent,
-                                contentLength: finalPartialContent ? finalPartialContent.length : 0,
-                                contentPreview: finalPartialContent ? finalPartialContent.substring(0, 100) : 'EMPTY PARTIAL CONTENT',
-                                messageId: message.id,
-                                messageType: message.type
-                            });
+                        if (message && partialContent) {
+                            message.content = partialContent;
+                            
+                            // 참조 문서 정보 수집
                             const referencedDocs = messageElement.querySelector('.referenced-docs');
                             if (referencedDocs) {
                                 message.referencedDocs = referencedDocs.outerHTML;
                             }
+                            
+                            console.log('💾 Partial content saved after stop');
                             
                             // 부분 콘텐츠 저장
                             this._finalizeStreamingMessage(message);
@@ -592,7 +574,7 @@
             }
         },
         
-        // MathJax 렌더링된 내용 정리
+        // MathJax 렌더링된 내용 정리 (개선된 텍스트 보존)
         cleanMathJaxContent: function(html) {
             console.log("🔍 Debug: cleanMathJaxContent input:", {
                 inputLength: html ? html.length : 0,
@@ -605,41 +587,98 @@
                 return html;
             }
             
-            // 임시 요소 생성
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
+            // 원본 백업
+            const originalHtml = html;
+            let textPreserved = 0;
             
-            // MathJax가 렌더링한 요소들 제거 (텍스트 콘텐츠 보존)
-            const mjxElements = temp.querySelectorAll('mjx-container, .MathJax, .MathJax_Display, .MathJax_Preview, .MathJax_CHTML');
-            mjxElements.forEach(el => {
-                // 요소를 제거하기 전에 텍스트 내용이 있는지 확인
-                const textContent = el.textContent || el.innerText;
-                if (textContent && textContent.trim()) {
-                    console.log("🔍 Debug: Preserving text from MathJax element:", textContent.substring(0, 50));
-                    // 부모 요소에 텍스트 추가 (MathJax 렌더링 대신)
-                    const textNode = document.createTextNode(textContent);
-                    el.parentNode.insertBefore(textNode, el);
+            try {
+                // 임시 요소 생성
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                // 모든 텍스트 노드 먼저 수집 (보존용)
+                const allTextContent = temp.textContent || temp.innerText || '';
+                
+                // MathJax가 렌더링한 요소들 제거 (텍스트 콘텐츠 보존)
+                const mjxElements = temp.querySelectorAll('mjx-container, .MathJax, .MathJax_Display, .MathJax_Preview, .MathJax_CHTML');
+                mjxElements.forEach(el => {
+                    // 요소를 제거하기 전에 텍스트 내용이 있는지 확인
+                    const textContent = el.textContent || el.innerText;
+                    if (textContent && textContent.trim()) {
+                        console.log("🔍 Debug: Preserving text from MathJax element:", textContent.substring(0, 50));
+                        // 부모 요소에 텍스트 추가 (MathJax 렌더링 대신)
+                        try {
+                            const textNode = document.createTextNode(' ' + textContent + ' ');
+                            if (el.parentNode) {
+                                el.parentNode.insertBefore(textNode, el);
+                                textPreserved++;
+                            }
+                        } catch (insertError) {
+                            console.warn('⚠️ Failed to preserve text from MathJax element:', insertError);
+                        }
+                    }
+                    try {
+                        el.remove();
+                    } catch (removeError) {
+                        console.warn('⚠️ Failed to remove MathJax element:', removeError);
+                    }
+                });
+                
+                // MathJax 처리 마커 제거 (하지만 수식 자체는 보존)
+                const scriptElements = temp.querySelectorAll('script[type*="math/tex"]');
+                scriptElements.forEach(el => {
+                    try {
+                        el.remove();
+                    } catch (error) {
+                        console.warn('⚠️ Failed to remove script element:', error);
+                    }
+                });
+                
+                // MathJax data 속성 제거
+                const elementsWithData = temp.querySelectorAll('[data-mjx-texclass]');
+                elementsWithData.forEach(el => {
+                    try {
+                        el.removeAttribute('data-mjx-texclass');
+                    } catch (error) {
+                        console.warn('⚠️ Failed to remove data attribute:', error);
+                    }
+                });
+                
+                const result = temp.innerHTML;
+                const finalTextContent = temp.textContent || temp.innerText || '';
+                
+                // 텍스트 손실 검증
+                const originalLength = allTextContent.length;
+                const finalLength = finalTextContent.length;
+                const significantLoss = originalLength > 50 && finalLength < (originalLength * 0.5);
+                
+                if (significantLoss) {
+                    console.warn('⚠️ Significant text loss in MathJax cleaning:', {
+                        originalLength: originalLength,
+                        finalLength: finalLength,
+                        lossPercentage: Math.round((1 - finalLength / originalLength) * 100) + '%',
+                        textPreserved: textPreserved
+                    });
+                    
+                    // 손실이 심각하면 원본 반환
+                    if (finalLength < (originalLength * 0.2)) {
+                        console.warn('⚠️ Excessive text loss, returning original HTML');
+                        return originalHtml;
+                    }
                 }
-                el.remove();
-            });
-            
-            // MathJax 처리 마커 제거 (하지만 수식 자체는 보존)
-            const scriptElements = temp.querySelectorAll('script[type*="math/tex"]');
-            scriptElements.forEach(el => el.remove());
-            
-            // MathJax data 속성 제거
-            const elementsWithData = temp.querySelectorAll('[data-mjx-texclass]');
-            elementsWithData.forEach(el => {
-                el.removeAttribute('data-mjx-texclass');
-            });
-            
-            const result = temp.innerHTML;
-            console.log("🔍 Debug: cleanMathJaxContent output:", {
-                outputLength: result ? result.length : 0,
-                outputPreview: result ? result.substring(0, 100) : 'EMPTY OUTPUT'
-            });
-            
-            return result;
+                
+                console.log("🔍 Debug: cleanMathJaxContent output:", {
+                    outputLength: result ? result.length : 0,
+                    outputPreview: result ? result.substring(0, 100) : 'EMPTY OUTPUT',
+                    textPreserved: textPreserved,
+                    textLossPercentage: originalLength > 0 ? Math.round((1 - finalLength / originalLength) * 100) + '%' : '0%'
+                });
+                
+                return result || originalHtml;
+            } catch (error) {
+                console.error('❌ Error in cleanMathJaxContent:', error);
+                return originalHtml; // 오류 시 원본 반환
+            }
         },
         
         // 쿼리 문서 정보 가져오기 - 프록시 방식
@@ -1417,6 +1456,11 @@
         _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
             console.log(`🔍 Capturing streaming content for message ${messageId} (partial: ${isPartial})`);
             
+            // 메트릭 기록
+            if (KachiCore.debug) {
+                KachiCore.debug.recordCaptureAttempt();
+            }
+            
             let finalContent = '';
             const captureStrategies = [];
             
@@ -1459,6 +1503,18 @@
                     }
                 }
                 
+                // 전략 4: 스냅샷 복구 (백업 수단)
+                if (isPartial || captureStrategies.length === 0) {
+                    const snapshotContent = this._recoverContentFromSnapshots();
+                    if (snapshotContent && snapshotContent.trim()) {
+                        captureStrategies.push({
+                            strategy: 'snapshot_recovery',
+                            content: snapshotContent,
+                            length: snapshotContent.length
+                        });
+                    }
+                }
+                
                 // 최적의 전략 선택 (가장 긴 콘텐츠)
                 if (captureStrategies.length > 0) {
                     const bestStrategy = captureStrategies.reduce((prev, current) => 
@@ -1473,16 +1529,31 @@
                         contentPreview: finalContent.substring(0, 100)
                     });
                     
-                    // 복구 메트릭 기록 (fallback 전략 사용 시)
-                    if (bestStrategy.strategy !== 'stream_buffer' && KachiCore.debug) {
-                        KachiCore.debug.recordRecovery();
+                    // 성공 메트릭 기록
+                    if (KachiCore.debug) {
+                        KachiCore.debug.recordCaptureSuccess();
+                        
+                        // 전략별 메트릭 기록
+                        if (bestStrategy.strategy === 'stream_buffer') {
+                            KachiCore.debug.recordMetric('streamBufferSuccesses');
+                        } else if (bestStrategy.strategy === 'dom_extraction') {
+                            KachiCore.debug.recordMetric('domExtractionSuccesses');
+                        } else if (bestStrategy.strategy === 'snapshot_recovery') {
+                            KachiCore.debug.recordMetric('snapshotRecoveries');
+                        }
+                        
+                        // 복구 메트릭 기록 (fallback 전략 사용 시)
+                        if (bestStrategy.strategy !== 'stream_buffer') {
+                            KachiCore.debug.recordRecovery();
+                        }
                     }
                 } else {
                     console.warn('⚠️ No content capture strategies succeeded');
                     finalContent = '';
                     
-                    // 콘텐츠 손실 메트릭 기록
+                    // 실패 및 콘텐츠 손실 메트릭 기록
                     if (KachiCore.debug) {
+                        KachiCore.debug.recordCaptureFailure();
                         KachiCore.debug.recordContentLoss();
                     }
                 }
@@ -1490,32 +1561,108 @@
             } catch (error) {
                 console.error('❌ Error during content capture:', error);
                 finalContent = '';
+                
+                // 오류 메트릭 기록
+                if (KachiCore.debug) {
+                    KachiCore.debug.recordCaptureFailure();
+                    KachiCore.debug.recordContentLoss();
+                }
             }
             
             return finalContent;
         },
         
-        // 스트림 콘텐츠 처리
+        // 스트림 콘텐츠 처리 (강화된 검증 버전)
         _processStreamContent: function(streamBuffer) {
             try {
                 if (!streamBuffer || !streamBuffer.trim()) {
+                    console.warn('⚠️ Stream buffer is empty or contains only whitespace');
                     return '';
                 }
                 
+                console.log('🔄 Starting content processing pipeline:', {
+                    originalLength: streamBuffer.length,
+                    originalPreview: streamBuffer.substring(0, 100)
+                });
+                
                 // 1. 이미지 태그 수정
                 const fixedContent = this.fixImgTags(streamBuffer);
+                if (!this._validateProcessingStep('fixImgTags', streamBuffer, fixedContent)) {
+                    return streamBuffer; // 실패 시 원본 반환
+                }
                 
                 // 2. 저장을 위해 이미지 URL 처리 (원본 URL 유지)
                 const storageContent = this.processImageUrlsForStorage(fixedContent);
+                if (!this._validateProcessingStep('processImageUrlsForStorage', fixedContent, storageContent)) {
+                    return fixedContent; // 이전 단계 결과 반환
+                }
                 
                 // 3. MathJax 콘텐츠 정리
                 const cleanedContent = this.cleanMathJaxContent(storageContent);
+                if (!this._validateProcessingStep('cleanMathJaxContent', storageContent, cleanedContent)) {
+                    return storageContent; // 이전 단계 결과 반환
+                }
                 
-                return cleanedContent || '';
+                console.log('✅ Content processing completed successfully:', {
+                    finalLength: cleanedContent ? cleanedContent.length : 0,
+                    finalPreview: cleanedContent ? cleanedContent.substring(0, 100) : 'EMPTY'
+                });
+                
+                return cleanedContent || streamBuffer;
             } catch (error) {
                 console.error('❌ Error processing stream content:', error);
                 return streamBuffer; // 원본 반환
             }
+        },
+        
+        // 처리 단계 검증
+        _validateProcessingStep: function(stepName, input, output) {
+            const inputLength = input ? input.length : 0;
+            const outputLength = output ? output.length : 0;
+            
+            // 출력이 입력보다 90% 이상 짧아진 경우 의심스러움
+            const significantLoss = inputLength > 50 && outputLength < (inputLength * 0.1);
+            
+            if (significantLoss) {
+                console.warn(`⚠️ Significant content loss detected in ${stepName}:`, {
+                    inputLength: inputLength,
+                    outputLength: outputLength,
+                    lossPercentage: Math.round((1 - outputLength / inputLength) * 100) + '%',
+                    inputPreview: input ? input.substring(0, 100) : 'EMPTY',
+                    outputPreview: output ? output.substring(0, 100) : 'EMPTY'
+                });
+                
+                // 메트릭 기록
+                if (KachiCore.debug) {
+                    KachiCore.debug.recordContentLoss();
+                    KachiCore.debug.recordProcessingStepFailure();
+                }
+                
+                return false;
+            }
+            
+            // 출력이 완전히 비어있는 경우도 문제
+            if (inputLength > 0 && (!output || !output.trim())) {
+                console.warn(`⚠️ Content completely lost in ${stepName}:`, {
+                    inputLength: inputLength,
+                    inputPreview: input ? input.substring(0, 100) : 'EMPTY'
+                });
+                
+                if (KachiCore.debug) {
+                    KachiCore.debug.recordContentLoss();
+                    KachiCore.debug.recordProcessingStepFailure();
+                }
+                
+                return false;
+            }
+            
+            console.log(`✅ ${stepName} validation passed:`, {
+                inputLength: inputLength,
+                outputLength: outputLength,
+                changePercent: inputLength > 0 ? Math.round((outputLength / inputLength) * 100) + '%' : 'N/A'
+            });
+            
+            return true;
         },
         
         // DOM에서 콘텐츠 추출
@@ -1578,6 +1725,31 @@
                     contentLength: message.content ? message.content.length : 0
                 });
                 
+                // LLM 응답 저장 성공 여부 메트릭 기록
+                if (KachiCore.debug && message.role === 'assistant') {
+                    const hasValidContent = message.content && message.content.trim().length > 0;
+                    const isErrorMessage = message.content && (
+                        message.content.includes('❌') || 
+                        message.content.includes('오류가 발생했습니다') ||
+                        message.content.includes('콘텐츠를 불러올 수 없습니다')
+                    );
+                    
+                    if (hasValidContent && !isErrorMessage) {
+                        KachiCore.debug.recordLLMResponseSaved();
+                        console.log('✅ LLM response successfully saved:', {
+                            messageId: message.id,
+                            contentLength: message.content.length
+                        });
+                    } else {
+                        KachiCore.debug.recordLLMResponseLost();
+                        console.warn('⚠️ LLM response lost or invalid:', {
+                            messageId: message.id,
+                            hasContent: hasValidContent,
+                            isError: isErrorMessage
+                        });
+                    }
+                }
+                
                 // 대화 업데이트 (디바운싱 적용)
                 setTimeout(() => {
                     console.log('💾 Updating conversation after streaming completion...');
@@ -1616,6 +1788,96 @@
                 }
             } catch (error) {
                 console.error('❌ Error in streaming failure handler:', error);
+            }
+        },
+        
+        // 콘텐츠 보존을 위한 스냅샷 생성
+        _createContentSnapshot: function(messageElement, newChunk) {
+            try {
+                // 너무 자주 스냅샷을 만들지 않도록 제한
+                const now = Date.now();
+                if (!this._lastSnapshotTime) this._lastSnapshotTime = now;
+                if (now - this._lastSnapshotTime < 2000) return; // 2초 간격
+                
+                this._lastSnapshotTime = now;
+                
+                // 현재 스트림 버퍼 스냅샷
+                const streamSnapshot = {
+                    timestamp: now,
+                    streamBuffer: KachiCore.streamBuffer || '',
+                    bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0
+                };
+                
+                // DOM 콘텐츠 스냅샷
+                const textElement = messageElement.querySelector('.message-text');
+                if (textElement) {
+                    streamSnapshot.domContent = textElement.innerHTML || '';
+                    streamSnapshot.domTextContent = textElement.textContent || textElement.innerText || '';
+                    streamSnapshot.domContentLength = streamSnapshot.domContent.length;
+                }
+                
+                // 스냅샷 저장 (최대 10개만 보관)
+                if (!KachiCore.contentBackups) KachiCore.contentBackups = [];
+                KachiCore.contentBackups.push(streamSnapshot);
+                if (KachiCore.contentBackups.length > 10) {
+                    KachiCore.contentBackups.shift(); // 오래된 것 제거
+                }
+                
+                // 최신 스냅샷 업데이트
+                KachiCore.lastContentSnapshot = streamSnapshot;
+                
+                console.log('📸 Content snapshot created:', {
+                    snapshotCount: KachiCore.contentBackups.length,
+                    bufferLength: streamSnapshot.bufferLength,
+                    domLength: streamSnapshot.domContentLength || 0
+                });
+                
+            } catch (error) {
+                console.warn('⚠️ Failed to create content snapshot:', error);
+            }
+        },
+        
+        // 스냅샷을 사용한 콘텐츠 복구
+        _recoverContentFromSnapshots: function() {
+            try {
+                if (!KachiCore.contentBackups || KachiCore.contentBackups.length === 0) {
+                    console.warn('⚠️ No content snapshots available for recovery');
+                    return '';
+                }
+                
+                // 가장 최신이면서 가장 긴 콘텐츠 찾기
+                let bestSnapshot = KachiCore.contentBackups.reduce((best, current) => {
+                    const currentLength = Math.max(
+                        current.bufferLength || 0, 
+                        current.domContentLength || 0
+                    );
+                    const bestLength = Math.max(
+                        best.bufferLength || 0, 
+                        best.domContentLength || 0
+                    );
+                    
+                    return currentLength > bestLength ? current : best;
+                });
+                
+                // 스트림 버퍼가 더 좋으면 그것을 사용, 아니면 DOM 콘텐츠 사용
+                let recoveredContent = '';
+                if (bestSnapshot.bufferLength > bestSnapshot.domContentLength) {
+                    recoveredContent = bestSnapshot.streamBuffer;
+                    console.log('🔄 Recovered content from stream buffer snapshot');
+                } else {
+                    recoveredContent = bestSnapshot.domTextContent;
+                    console.log('🔄 Recovered content from DOM snapshot');
+                }
+                
+                if (KachiCore.debug) {
+                    KachiCore.debug.recordRecovery();
+                }
+                
+                return recoveredContent || '';
+                
+            } catch (error) {
+                console.error('❌ Error recovering content from snapshots:', error);
+                return '';
             }
         }
     };

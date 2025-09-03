@@ -813,7 +813,17 @@
                 avgSaveTime: 0,
                 lastSaveTime: 0,
                 contentLosses: 0,
-                recoveries: 0
+                recoveries: 0,
+                // 새로운 콘텐츠 캡처 메트릭
+                captureAttempts: 0,
+                captureSuccesses: 0,
+                captureFailures: 0,
+                streamBufferSuccesses: 0,
+                domExtractionSuccesses: 0,
+                snapshotRecoveries: 0,
+                processingStepFailures: 0,
+                llmResponsesLost: 0,
+                llmResponsesSaved: 0
             },
             
             // 메트릭 업데이트
@@ -839,6 +849,51 @@
                 this.metrics.recoveries++;
             },
             
+            // 새로운 콘텐츠 캡처 메트릭 메서드들
+            recordCaptureAttempt: function() {
+                this.metrics.captureAttempts++;
+            },
+            
+            recordCaptureSuccess: function(strategy) {
+                this.metrics.captureSuccesses++;
+                switch (strategy) {
+                    case 'stream_buffer':
+                        this.metrics.streamBufferSuccesses++;
+                        break;
+                    case 'dom_extraction':
+                        this.metrics.domExtractionSuccesses++;
+                        break;
+                    case 'snapshot_recovery':
+                        this.metrics.snapshotRecoveries++;
+                        break;
+                }
+            },
+            
+            recordCaptureFailure: function() {
+                this.metrics.captureFailures++;
+            },
+            
+            recordProcessingStepFailure: function() {
+                this.metrics.processingStepFailures++;
+            },
+            
+            recordLLMResponseLost: function() {
+                this.metrics.llmResponsesLost++;
+            },
+            
+            recordLLMResponseSaved: function() {
+                this.metrics.llmResponsesSaved++;
+            },
+            
+            // 일반적인 메트릭 기록 함수 (단일 진입점)
+            recordMetric: function(metricName) {
+                if (this.metrics.hasOwnProperty(metricName)) {
+                    this.metrics[metricName]++;
+                } else {
+                    console.warn('⚠️ Unknown metric name:', metricName);
+                }
+            },
+            
             updateAvgSaveTime: function(duration) {
                 const total = this.metrics.avgSaveTime * (this.metrics.saveSuccesses - 1) + duration;
                 this.metrics.avgSaveTime = Math.round(total / this.metrics.saveSuccesses);
@@ -849,14 +904,35 @@
                 const total = this.metrics.saveAttempts;
                 const successRate = total > 0 ? Math.round((this.metrics.saveSuccesses / total) * 100) : 0;
                 
+                const captureTotal = this.metrics.captureAttempts;
+                const captureSuccessRate = captureTotal > 0 ? Math.round((this.metrics.captureSuccesses / captureTotal) * 100) : 0;
+                
+                const llmTotal = this.metrics.llmResponsesSaved + this.metrics.llmResponsesLost;
+                const llmSaveRate = llmTotal > 0 ? Math.round((this.metrics.llmResponsesSaved / llmTotal) * 100) : 0;
+                
+                // 전체 건강도는 저장률과 캡처률을 모두 고려
+                const combinedScore = (successRate + captureSuccessRate + llmSaveRate) / 3;
+                
                 return {
-                    overallHealth: successRate >= 95 ? 'EXCELLENT' : successRate >= 85 ? 'GOOD' : successRate >= 70 ? 'FAIR' : 'POOR',
-                    successRate: successRate + '%',
-                    totalAttempts: this.metrics.saveAttempts,
+                    overallHealth: combinedScore >= 95 ? 'EXCELLENT' : combinedScore >= 85 ? 'GOOD' : combinedScore >= 70 ? 'FAIR' : 'POOR',
+                    saveSuccessRate: successRate + '%',
+                    totalSaveAttempts: this.metrics.saveAttempts,
                     successful: this.metrics.saveSuccesses,
                     failed: this.metrics.saveFailures,
                     avgResponseTime: this.metrics.avgSaveTime + 'ms',
+                    // 콘텐츠 캡처 관련
+                    contentCaptureRate: captureSuccessRate + '%',
+                    captureAttempts: this.metrics.captureAttempts,
+                    streamBufferSuccesses: this.metrics.streamBufferSuccesses,
+                    domExtractionSuccesses: this.metrics.domExtractionSuccesses,
+                    snapshotRecoveries: this.metrics.snapshotRecoveries,
+                    // LLM 응답 관련
+                    llmResponseSaveRate: llmSaveRate + '%',
+                    llmResponsesSaved: this.metrics.llmResponsesSaved,
+                    llmResponsesLost: this.metrics.llmResponsesLost,
+                    // 기타
                     contentIssues: this.metrics.contentLosses,
+                    processingFailures: this.metrics.processingStepFailures,
                     recoveries: this.metrics.recoveries,
                     lastSave: this.metrics.lastSaveTime ? new Date(this.metrics.lastSaveTime).toLocaleString('ko-KR') : 'Never'
                 };
