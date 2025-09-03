@@ -214,7 +214,7 @@
         },
         
         // 대화 저장 (데이터베이스에)
-        saveConversations: function() {
+        saveConversations: function(retryCount = 0) {
             if (!window.isUserLoggedIn) {
                 console.warn("⚠️ User not logged in, cannot save conversations");
                 return;
@@ -225,7 +225,7 @@
                 return;
             }
             
-            if (this.isSaving) {
+            if (this.isSaving && retryCount === 0) {
                 console.log("⚠️ Already saving...");
                 return;
             }
@@ -237,6 +237,20 @@
             }
             
             this.isSaving = true;
+            console.log("💾 Starting conversation save to database...");
+            
+            // 저장할 메시지 내용 디버깅
+            console.log("🔍 Content being saved to database:", {
+                conversationId: this.currentConversationId,
+                messageCount: this.chatHistory.length,
+                messages: this.chatHistory.map(msg => ({
+                    id: msg.id,
+                    type: msg.type,
+                    hasContent: !!msg.content,
+                    contentLength: msg.content ? msg.content.length : 0,
+                    contentPreview: msg.content ? msg.content.substring(0, 50) + '...' : 'NO CONTENT'
+                }))
+            });
             
             // 현재 대화 저장
             $.ajax({
@@ -251,13 +265,49 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        console.log("💾 Conversation saved to DB");
+                        console.log("✅ Conversation successfully saved to database:", {
+                            conversationId: this.currentConversationId,
+                            messageCount: this.chatHistory.length,
+                            response: response
+                        });
                     } else {
-                        console.error("❌ Failed to save conversation:", response);
+                        console.error("❌ Database save failed:", {
+                            conversationId: this.currentConversationId,
+                            error: response,
+                            messageCount: this.chatHistory.length,
+                            retryCount: retryCount,
+                            sentData: {
+                                title: conversation.title,
+                                messagesLength: conversation.messages.length
+                            }
+                        });
+                        
+                        // 재시도 로직 (최대 2회)
+                        if (retryCount < 2) {
+                            console.log(`🔄 Retrying save in 1 second... (attempt ${retryCount + 1}/2)`);
+                            setTimeout(() => {
+                                this.saveConversations(retryCount + 1);
+                            }, 1000);
+                        }
                     }
                 },
                 error: (xhr, status, error) => {
-                    console.error("❌ Error saving conversation:", error);
+                    console.error("❌ AJAX error during save:", {
+                        conversationId: this.currentConversationId,
+                        error: error,
+                        status: status,
+                        xhr: xhr,
+                        messageCount: this.chatHistory.length,
+                        retryCount: retryCount
+                    });
+                    
+                    // AJAX 에러 시에도 재시도
+                    if (retryCount < 2) {
+                        console.log(`🔄 Retrying save after AJAX error in 1 second... (attempt ${retryCount + 1}/2)`);
+                        setTimeout(() => {
+                            this.saveConversations(retryCount + 1);
+                        }, 1000);
+                    }
                 },
                 complete: () => {
                     this.isSaving = false;

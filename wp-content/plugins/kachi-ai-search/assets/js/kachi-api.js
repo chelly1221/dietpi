@@ -475,8 +475,13 @@
                         message.referencedDocs = referencedDocs.outerHTML;
                     }
                     console.log("💾 Message saved:", message);
-                    KachiCore.updateCurrentConversation();
-                    KachiUI.renderConversationList(false);
+                    
+                    // 짧은 지연을 두고 저장하여 콘텐츠가 완전히 처리된 후 저장
+                    setTimeout(() => {
+                        console.log("⏰ Triggering conversation save after content processing...");
+                        KachiCore.updateCurrentConversation();
+                        KachiUI.renderConversationList(false);
+                    }, 100);
                 }
                 
                 // 입력창에 포커스 주기
@@ -518,8 +523,13 @@
                                 message.referencedDocs = referencedDocs.outerHTML;
                             }
                             console.log("💾 Partial message saved (stopped):", message);
-                            KachiCore.updateCurrentConversation();
-                            KachiUI.renderConversationList(false);
+                            
+                            // 짧은 지연을 두고 저장하여 중지된 콘텐츠도 완전히 처리된 후 저장
+                            setTimeout(() => {
+                                console.log("⏰ Triggering conversation save after partial content processing...");
+                                KachiCore.updateCurrentConversation();
+                                KachiUI.renderConversationList(false);
+                            }, 100);
                         }
                     }
                 } else {
