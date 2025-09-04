@@ -1142,8 +1142,7 @@
                 return placeholder;
             });
             
-            // 이미지 URL 패턴 처리 (모든 이미지 형식) - 표시용으로만 행 전체 처리
-            text = this.processImageUrlsForDisplay(text);
+            // 이미지 URL 처리는 UI 렌더링 시에만 수행 (중복 처리 방지)
             
             // --- 수평선을 <hr>로 변환 (독립된 줄에 있는 경우)
             text = text.replace(/^---+$/gm, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">');
