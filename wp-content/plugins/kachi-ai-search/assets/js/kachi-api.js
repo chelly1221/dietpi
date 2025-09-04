@@ -746,21 +746,77 @@
         },
         
         // 완성된 이미지 URL 감지 및 추출 - 수정된 패턴
+        // 텍스트 블록 추출 함수 - HTML 태그 사이의 콘텐츠 추출
+        extractTextBlocks: function(html) {
+            const blocks = [];
+            // HTML 태그 사이의 텍스트 콘텐츠를 추출 (태그 자체는 제외)
+            const tagContentRegex = />([^<]*)/g;
+            let match;
+            let blockIndex = 0;
+            
+            while ((match = tagContentRegex.exec(html)) !== null) {
+                const content = match[1].trim();
+                if (content.length > 0) { // 빈 콘텐츠는 무시
+                    blocks.push({
+                        content: content,
+                        startPos: match.index + 1,
+                        endPos: match.index + match[0].length - 1,
+                        blockIndex: blockIndex++,
+                        originalMatch: match[0]
+                    });
+                }
+            }
+            
+            console.log('🧱 Extracted', blocks.length, 'text blocks from HTML');
+            return blocks;
+        },
+        
+        // 텍스트 블록 완성도 검사 - 스트리밍 중 완전한 블록인지 확인
+        isTextBlockComplete: function(block, fullText) {
+            // 블록이 HTML 태그 경계에서 끝나거나 스트림 끝에 있는지 확인
+            const afterBlockPos = block.endPos + 1;
+            
+            // 스트림 끝에 도달한 경우
+            if (afterBlockPos >= fullText.length) {
+                return true;
+            }
+            
+            // 다음 문자가 HTML 태그 시작('<')인지 확인  
+            const nextChar = fullText[afterBlockPos];
+            const isAtTagBoundary = nextChar === '<';
+            
+            console.log('🔍 Block completion check - pos:', afterBlockPos, 'nextChar:', nextChar, 'complete:', isAtTagBoundary);
+            return isAtTagBoundary;
+        },
+
         detectCompleteImages: function(text, processedImageUrls = new Set()) {
             const completeImages = [];
-            const lines = text.split('\n');
             
-            console.log('🔍 Detecting complete images in', lines.length, 'lines');
+            // HTML 태그 사이의 텍스트 블록들 추출
+            const textBlocks = this.extractTextBlocks(text);
             
-            lines.forEach((line, lineIndex) => {
-                // 이미 img 태그가 있는 줄은 건너뛰기
-                if (line.includes('<img')) {
+            console.log('🔍 Detecting complete images in', textBlocks.length, 'text blocks');
+            
+            textBlocks.forEach((block, blockIndex) => {
+                const blockContent = block.content;
+                
+                // 이미 img 태그가 있는 블록은 건너뛰기
+                if (blockContent.includes('<img')) {
+                    console.log('⏭️ Skipping block with existing img tag');
                     return;
                 }
                 
+                // 블록이 완성되었는지 확인 (스트리밍 중 부분 블록 방지)
+                if (!this.isTextBlockComplete(block, text)) {
+                    console.log('⏳ Block not complete, waiting for completion:', blockContent.substring(0, 50) + '...');
+                    return;
+                }
+                
+                console.log('✅ Processing complete text block:', blockContent);
+                
                 // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리
                 const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
-                const doubleUrlMatch = line.match(doubleUrlPattern);
+                const doubleUrlMatch = blockContent.match(doubleUrlPattern);
                 
                 if (doubleUrlMatch) {
                     const urlInBrackets = doubleUrlMatch[1];
@@ -769,7 +825,7 @@
                     // 두 URL이 동일한지 확인 (진정한 이중 URL인지 검증)
                     if (urlInBrackets === urlInParentheses) {
                         let originalImageUrl = urlInParentheses;
-                        console.log('🔄 DOUBLE URL detected (priority 1):', line);
+                        console.log('🔄 DOUBLE URL detected in block (priority 1):', blockContent);
                         console.log('🖼️ Processing double URL:', originalImageUrl);
                         
                         originalImageUrl = this.cleanImageUrl(originalImageUrl);
@@ -778,10 +834,11 @@
                         // 이미 처리된 이미지가 아닌 경우에만 추가
                         if (!processedImageUrls.has(originalImageUrl)) {
                             completeImages.push({
-                                lineIndex,
+                                blockIndex: blockIndex,
                                 originalUrl: originalImageUrl,
                                 type: 'double-url',
-                                fullLine: line
+                                fullBlock: blockContent,
+                                blockInfo: block
                             });
                             processedImageUrls.add(originalImageUrl);
                             console.log('✅ Added double URL for real-time processing');
@@ -796,11 +853,11 @@
                 
                 // 우선순위 2: 일반 마크다운 패턴 [text](URL) - 이중 URL이 아닌 경우만
                 const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
-                const markdownMatch = line.match(markdownImagePattern);
+                const markdownMatch = blockContent.match(markdownImagePattern);
                 
                 if (markdownMatch) {
                     let originalImageUrl = markdownMatch[1];
-                    console.log('🖼️ Found regular markdown URL (priority 2):', originalImageUrl);
+                    console.log('🖼️ Found regular markdown URL in block (priority 2):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     console.log('🧹 Cleaned markdown URL:', originalImageUrl);
@@ -808,10 +865,11 @@
                     // 이미 처리된 이미지가 아닌 경우에만 추가
                     if (!processedImageUrls.has(originalImageUrl)) {
                         completeImages.push({
-                            lineIndex,
+                            blockIndex: blockIndex,
                             originalUrl: originalImageUrl,
                             type: 'markdown',
-                            fullLine: line
+                            fullBlock: blockContent,
+                            blockInfo: block
                         });
                         processedImageUrls.add(originalImageUrl);
                         console.log('✅ Added regular markdown image for real-time processing');
@@ -823,11 +881,11 @@
                 
                 // 우선순위 3: 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 마크다운이 아닌 경우만
                 const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s\)\]]+/;
-                const normalMatch = line.match(normalImagePattern);
+                const normalMatch = blockContent.match(normalImagePattern);
                 
                 if (normalMatch) {
                     let originalImageUrl = normalMatch[0];
-                    console.log('🖼️ Found plain URL (priority 3):', originalImageUrl);
+                    console.log('🖼️ Found plain URL in block (priority 3):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     console.log('🧹 Cleaned URL:', originalImageUrl);
@@ -835,9 +893,11 @@
                     // 이미 처리된 이미지가 아닌 경우에만 추가
                     if (!processedImageUrls.has(originalImageUrl)) {
                         completeImages.push({
-                            lineIndex,
+                            blockIndex: blockIndex,
                             originalUrl: originalImageUrl,
-                            type: 'normal'
+                            type: 'normal',
+                            fullBlock: blockContent,
+                            blockInfo: block
                         });
                         processedImageUrls.add(originalImageUrl);
                         console.log('✅ Added normal image for real-time processing');
@@ -851,7 +911,7 @@
             return completeImages;
         },
         
-        // 실시간 이미지 처리 - 완성된 이미지만 처리, 라인 기반 커트오프
+        // 실시간 이미지 처리 - 완성된 이미지만 처리, 블록 기반 HTML 구조 보존
         processImagesRealtime: function(text, processedImageUrls) {
             const completeImages = this.detectCompleteImages(text, processedImageUrls);
             
@@ -859,28 +919,45 @@
                 return { processedText: text }; // 새로운 완성된 이미지가 없으면 원본 반환
             }
             
-            console.log('🖼️ Found', completeImages.length, 'new complete images for real-time processing');
+            console.log('🖼️ Found', completeImages.length, 'new complete images for block-based processing');
             
-            // 줄 단위로 분리하여 처리
-            const lines = text.split('\n');
+            let processedText = text;
             
+            // 각 이미지를 HTML 구조를 보존하면서 처리
             completeImages.forEach(imageInfo => {
-                const { lineIndex, originalUrl } = imageInfo;
+                const { originalUrl, fullBlock, blockInfo, type } = imageInfo;
                 
-                if (lines[lineIndex]) {
-                    // 프록시 URL로 변환
-                    const proxyUrl = this.convertToProxyImageUrl(originalUrl);
-                    
-                    // 해당 줄을 이미지 태그로 교체
-                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalUrl}">`;
-                    lines[lineIndex] = imageTag;
-                    
-                    console.log('🖼️ Real-time processed image:', originalUrl, 'at line', lineIndex);
+                // 프록시 URL로 변환
+                const proxyUrl = this.convertToProxyImageUrl(originalUrl);
+                
+                // 이미지 태그 생성
+                const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalUrl}">`;
+                
+                // 원본 블록 내용에서 URL을 이미지 태그로 교체
+                let updatedBlockContent;
+                if (type === 'double-url') {
+                    // 이중 URL 패턴 교체
+                    const doubleUrlPattern = new RegExp(`\\[${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]\\(${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+                    updatedBlockContent = fullBlock.replace(doubleUrlPattern, imageTag);
+                } else if (type === 'markdown') {
+                    // 일반 마크다운 패턴 교체  
+                    const markdownPattern = new RegExp(`\\[.*?\\]\\(${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+                    updatedBlockContent = fullBlock.replace(markdownPattern, imageTag);
+                } else {
+                    // 일반 URL 패턴 교체
+                    const plainUrlPattern = new RegExp(originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                    updatedBlockContent = fullBlock.replace(plainUrlPattern, imageTag);
                 }
+                
+                // 전체 텍스트에서 원본 블록을 업데이트된 블록으로 교체
+                processedText = processedText.replace(fullBlock, updatedBlockContent);
+                
+                console.log('🖼️ Block-based processed image:', originalUrl, 'type:', type);
+                console.log('🔄 Original block:', fullBlock.substring(0, 100) + '...');
+                console.log('✅ Updated block:', updatedBlockContent.substring(0, 100) + '...');
             });
             
-            const processedText = lines.join('\n');
-            console.log('🖼️ Image processing completed without cutoff logic');
+            console.log('🖼️ Block-based image processing completed');
             
             return { processedText };
         },
