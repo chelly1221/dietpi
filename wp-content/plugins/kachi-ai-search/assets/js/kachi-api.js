@@ -1080,20 +1080,41 @@
         
         // 이미지를 보존하면서 나머지 포맷팅 수행 - 실시간 스트리밍용
         formatResponsePreservingImages: function(text) {
+            // 입력 유효성 검사 및 성능 보호
+            if (!text || typeof text !== 'string') {
+                console.warn('🖼️ [DEBUG] Invalid input to formatResponsePreservingImages:', typeof text);
+                return text || '';
+            }
+            
+            // 과도한 로깅 방지 (짧은 텍스트는 간단히)
+            if (text.length < 50) {
+                console.log('🖼️ [DEBUG] Short input:', text);
+            } else {
+                console.log('🖼️ [DEBUG] formatResponsePreservingImages input length:', text.length, 'preview:', text.substring(0, 100) + '...');
+            }
+            
             // 이미 처리된 이미지 태그를 임시로 보호
             const imagePlaceholders = {};
             let imageCounter = 0;
             
             // 기존 이미지 태그 보호
             text = text.replace(/<img[^>]*>/g, function(match) {
+                console.log('🖼️ [DEBUG] Protecting existing img tag:', match);
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                 imagePlaceholders[placeholder] = match;
                 return placeholder;
             });
             
             // 이미지 URL 패턴들을 마크다운 처리 전에 감지하여 보호
-            // 1. 이중 URL 패턴: [http://...](http://...)
-            text = text.replace(/\[\s*(https?:\/\/[^\s\]]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\]]*)?[^\s\]]*)\s*\]\(\s*(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\)]*)?[^\s\)]*)\s*\)/gi, function(match, url1, url2) {
+            console.log('🖼️ [DEBUG] Starting URL pattern matching...');
+            
+            // 1. 이중 URL 패턴: [http://...](http://...) - 단순화된 패턴
+            const simpleDoubleUrlPattern = /\[(https?:\/\/[^\]]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi;
+            const doubleUrlMatches = text.match(simpleDoubleUrlPattern);
+            console.log('🖼️ [DEBUG] Double URL pattern matches found:', doubleUrlMatches ? doubleUrlMatches.length : 0, doubleUrlMatches);
+            
+            text = text.replace(simpleDoubleUrlPattern, function(match, url1, ext1, url2, ext2) {
+                console.log('🖼️ [DEBUG] Double URL match found:', { match, url1, url2 });
                 // 두 URL이 같거나 유사한 경우 이미지로 처리
                 if (url1 === url2 || Math.abs(url1.length - url2.length) <= 3) {
                     const finalUrl = url1.length >= url2.length ? url1 : url2;
@@ -1102,40 +1123,85 @@
                     
                     const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                     imagePlaceholders[placeholder] = imgTag;
+                    console.log('🖼️ [DEBUG] Created double URL placeholder:', placeholder, 'for URL:', finalUrl);
                     return placeholder;
                 }
+                console.log('🖼️ [DEBUG] URLs not similar enough, keeping original:', match);
                 return match; // URL이 다른 경우 원래 텍스트 유지
             });
             
-            // 2. 일반 마크다운 이미지 패턴: ![alt](http://...)
-            text = text.replace(/!\[([^\]]*)\]\(\s*(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\)]*)?[^\s\)]*)\s*\)/gi, function(match, alt, url) {
+            // 2. 일반 마크다운 이미지 패턴: ![alt](http://...) - 단순화된 패턴
+            const simpleMarkdownPattern = /!\[([^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi;
+            const markdownMatches = text.match(simpleMarkdownPattern);
+            console.log('🖼️ [DEBUG] Markdown image pattern matches found:', markdownMatches ? markdownMatches.length : 0, markdownMatches);
+            
+            text = text.replace(simpleMarkdownPattern, function(match, alt, url, ext) {
+                console.log('🖼️ [DEBUG] Markdown image match found:', { match, alt, url });
                 const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
                 const imgTag = `<img src="${proxyUrl}" alt="${alt || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                 
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                 imagePlaceholders[placeholder] = imgTag;
+                console.log('🖼️ [DEBUG] Created markdown placeholder:', placeholder, 'for URL:', url);
                 return placeholder;
             });
             
-            // 3. 단순 URL 패턴 (독립된 줄에 있는 경우)
-            text = text.replace(/^\s*(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s]*)?)\s*$/gmi, function(match, url) {
+            // 3. 단순 URL 패턴 (독립된 줄에 있는 경우) - 단순화된 패턴
+            const simplePlainUrlPattern = /^\s*(https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|bmp|svg)\S*)\s*$/gmi;
+            const plainUrlMatches = text.match(simplePlainUrlPattern);
+            console.log('🖼️ [DEBUG] Plain URL pattern matches found:', plainUrlMatches ? plainUrlMatches.length : 0, plainUrlMatches);
+            
+            text = text.replace(simplePlainUrlPattern, function(match, url, ext) {
+                console.log('🖼️ [DEBUG] Plain URL match found:', { match, url });
                 const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
                 const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                 
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                 imagePlaceholders[placeholder] = imgTag;
+                console.log('🖼️ [DEBUG] Created plain URL placeholder:', placeholder, 'for URL:', url);
                 return placeholder;
+            });
+            
+            // 4. 폴백 패턴 - 확장자가 없거나 다른 이미지 URL 형태 (더 유연한 매칭)
+            console.log('🖼️ [DEBUG] Checking for fallback patterns...');
+            
+            // 이미지 서버 URL에서 확장자가 명확하지 않은 경우를 위한 폴백
+            const fallbackDoublePattern = /\[(https?:\/\/192\.168\.10\.101:8001\/[^\]]+)\]\((https?:\/\/192\.168\.10\.101:8001\/[^\)]+)\)/gi;
+            const fallbackMatches = text.match(fallbackDoublePattern);
+            console.log('🖼️ [DEBUG] Fallback pattern matches found:', fallbackMatches ? fallbackMatches.length : 0, fallbackMatches);
+            
+            text = text.replace(fallbackDoublePattern, function(match, url1, url2) {
+                console.log('🖼️ [DEBUG] Fallback match found:', { match, url1, url2 });
+                // 두 URL이 같거나 유사하고, 이미지 서버 URL인 경우
+                if ((url1 === url2 || Math.abs(url1.length - url2.length) <= 3) && 
+                    (url1.includes('/images/') || url2.includes('/images/'))) {
+                    const finalUrl = url1.length >= url2.length ? url1 : url2;
+                    const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+                    const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                    
+                    const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                    imagePlaceholders[placeholder] = imgTag;
+                    console.log('🖼️ [DEBUG] Created fallback placeholder:', placeholder, 'for URL:', finalUrl);
+                    return placeholder;
+                }
+                console.log('🖼️ [DEBUG] Fallback pattern did not match criteria, keeping original');
+                return match;
             });
             
             // 기존 포맷팅 로직 적용 (이미지 처리 제외)
             const formatted = this.formatResponseWithoutImages(text);
             
             // 이미지 플레이스홀더를 원래 태그로 복원
+            console.log('🖼️ [DEBUG] Total placeholders created:', Object.keys(imagePlaceholders).length, imagePlaceholders);
             let result = formatted;
             Object.keys(imagePlaceholders).forEach(placeholder => {
+                const beforeLength = result.length;
                 result = result.replace(new RegExp(placeholder, 'g'), imagePlaceholders[placeholder]);
+                const afterLength = result.length;
+                console.log('🖼️ [DEBUG] Restored placeholder:', placeholder, 'length change:', afterLength - beforeLength);
             });
             
+            console.log('🖼️ [DEBUG] Final formatted output length:', result.length, 'first 200 chars:', result.substring(0, 200));
             return result;
         },
         

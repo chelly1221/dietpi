@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Pattern Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .input { background: #f5f5f5; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .result { background: #e8f5e8; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .match { background: #fff3cd; padding: 5px; margin: 2px 0; border-radius: 3px; font-family: monospace; }
+        .no-match { color: #dc3545; }
+        pre { font-size: 12px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Regex Pattern Debug Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // 실제 kachi-api.js에서 사용하는 단순화된 패턴들
+        const patterns = {
+            doubleUrl: /\[(https?:\/\/[^\]]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi,
+            markdown: /!\[([^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi,
+            plainUrl: /^\s*(https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|bmp|svg)\S*)\s*$/gmi
+        };
+
+        // 실제 사용될 수 있는 URL 테스트 케이스들
+        const testCases = [
+            {
+                name: "기본 Double URL",
+                input: "[http://192.168.10.101:8001/images/03ff1bb5.jpg](http://192.168.10.101:8001/images/03ff1bb5.jpg)",
+                expectedPattern: "doubleUrl"
+            },
+            {
+                name: "Double URL with query params",
+                input: "[http://192.168.10.101:8001/images/test.png?v=123](http://192.168.10.101:8001/images/test.png?v=123)",
+                expectedPattern: "doubleUrl"
+            },
+            {
+                name: "Regular Markdown Image",
+                input: "![Sample Image](http://192.168.10.101:8001/images/sample.jpg)",
+                expectedPattern: "markdown"
+            },
+            {
+                name: "Markdown with empty alt",
+                input: "![](http://192.168.10.101:8001/images/empty-alt.png)",
+                expectedPattern: "markdown"
+            },
+            {
+                name: "Plain URL on its own line",
+                input: "http://192.168.10.101:8001/images/plain.jpg",
+                expectedPattern: "plainUrl"
+            },
+            {
+                name: "Plain URL with spaces",
+                input: "   http://192.168.10.101:8001/images/spaced.png   ",
+                expectedPattern: "plainUrl"
+            },
+            {
+                name: "Mixed content with double URL",
+                input: "**볼드 텍스트** [http://192.168.10.101:8001/images/mixed.jpg](http://192.168.10.101:8001/images/mixed.jpg) 일반 텍스트",
+                expectedPattern: "doubleUrl"
+            },
+            {
+                name: "Multiple images",
+                input: "첫번째: ![img1](http://192.168.10.101:8001/images/img1.jpg)\n두번째: [http://192.168.10.101:8001/images/img2.png](http://192.168.10.101:8001/images/img2.png)",
+                expectedPattern: "both"
+            },
+            {
+                name: "URL with fragment",
+                input: "[http://192.168.10.101:8001/images/fragment.jpg#section](http://192.168.10.101:8001/images/fragment.jpg#section)",
+                expectedPattern: "doubleUrl"
+            },
+            {
+                name: "Different extensions",
+                input: "[http://192.168.10.101:8001/images/test.webp](http://192.168.10.101:8001/images/test.webp)",
+                expectedPattern: "doubleUrl"
+            }
+        ];
+
+        function testPatterns() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            testCases.forEach((testCase, index) => {
+                console.log(`\n=== Testing Case ${index + 1}: ${testCase.name} ===`);
+                console.log('Input:', testCase.input);
+                
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-case';
+                testDiv.innerHTML = `<h3>${testCase.name}</h3>`;
+                
+                const inputDiv = document.createElement('div');
+                inputDiv.className = 'input';
+                inputDiv.innerHTML = `<strong>입력:</strong><br><pre>${testCase.input}</pre>`;
+                testDiv.appendChild(inputDiv);
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'result';
+                resultDiv.innerHTML = `<strong>결과:</strong>`;
+                
+                let foundMatches = false;
+                
+                // 각 패턴 테스트
+                Object.keys(patterns).forEach(patternName => {
+                    const pattern = new RegExp(patterns[patternName].source, patterns[patternName].flags);
+                    const matches = testCase.input.match(pattern);
+                    
+                    if (matches) {
+                        foundMatches = true;
+                        console.log(`${patternName} pattern matched:`, matches);
+                        
+                        const matchDiv = document.createElement('div');
+                        matchDiv.className = 'match';
+                        matchDiv.innerHTML = `<strong>${patternName}:</strong> ${matches.length}개 매치<br><pre>${JSON.stringify(matches, null, 2)}</pre>`;
+                        resultDiv.appendChild(matchDiv);
+                        
+                        // 실제 replace 테스트
+                        const replaced = testCase.input.replace(pattern, function(...args) {
+                            console.log(`${patternName} replace args:`, args);
+                            return `[REPLACED_${patternName.toUpperCase()}]`;
+                        });
+                        
+                        const replaceDiv = document.createElement('div');
+                        replaceDiv.innerHTML = `<strong>Replace 결과:</strong><br><pre>${replaced}</pre>`;
+                        resultDiv.appendChild(replaceDiv);
+                    } else {
+                        console.log(`${patternName} pattern: no match`);
+                    }
+                });
+                
+                if (!foundMatches) {
+                    const noMatchDiv = document.createElement('div');
+                    noMatchDiv.className = 'no-match';
+                    noMatchDiv.innerHTML = '매치된 패턴이 없습니다!';
+                    resultDiv.appendChild(noMatchDiv);
+                }
+                
+                testDiv.appendChild(resultDiv);
+                resultsDiv.appendChild(testDiv);
+            });
+        }
+
+        // 테스트 실행
+        testPatterns();
+    </script>
+</body>
+</html>
