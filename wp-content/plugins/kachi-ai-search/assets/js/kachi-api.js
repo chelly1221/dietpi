@@ -479,7 +479,7 @@
                 this.renderMathInElement(messageElement);
                 
                 // 스트리밍 완료 후 최종 메시지 업데이트 (개선된 버전)
-                const finalContent = this._captureStreamingContent(messageElement, messageId);
+                let finalContent = this._captureStreamingContent(messageElement, messageId);
                 console.log("✅ Final streaming content captured:", {
                     hasContent: !!finalContent,
                     contentLength: finalContent ? finalContent.length : 0,
@@ -536,7 +536,7 @@
                         textElement.innerHTML += `<div style="margin-top:10px; color:#a70638;">■ ${stoppedMsg}</div>`;
                         
                         // 중지된 경우도 새로운 캡처 시스템 사용
-                        const partialContent = this._captureStreamingContent(messageElement, messageId, true);
+                        let partialContent = this._captureStreamingContent(messageElement, messageId, true);
                         console.log('⚠️ Capturing partial content after user stop:', {
                             hasContent: !!partialContent,
                             contentLength: partialContent ? partialContent.length : 0
@@ -932,44 +932,24 @@
                         const processedText = imageResult.processedText;
                         const newCutoffLineIndex = imageResult.cutoffLineIndex;
                         
-                        // 새로운 이미지가 처리되어 커트오프 라인이 업데이트된 경우
-                        if (newCutoffLineIndex > messageElement._processedLineIndex) {
+                        // 이미지 처리 상태 업데이트 (cutoff 시스템 단순화)
+                        if (newCutoffLineIndex > (messageElement._processedLineIndex || -1)) {
                             messageElement._processedLineIndex = newCutoffLineIndex;
-                            console.log('🖼️ Updated cutoff line index to:', newCutoffLineIndex);
+                            console.log('🖼️ Updated processed line index to:', newCutoffLineIndex);
                         }
                         
-                        // 라인 단위로 처리된 부분과 스트리밍 부분 분리
-                        const lines = processedText.split('\n');
-                        let processedPart = '';
-                        let streamingPart = processedText;
+                        // 단순화된 표시 로직 - 전체 처리된 텍스트를 점진적으로 표시
+                        const targetLength = Math.min(processedText.length, KachiCore.displayedLength + charsToAdd);
+                        const finalDisplayText = processedText.substring(0, targetLength);
                         
-                        if (messageElement._processedLineIndex >= 0) {
-                            const processedLines = lines.slice(0, messageElement._processedLineIndex + 1);
-                            const streamingLines = lines.slice(messageElement._processedLineIndex + 1);
-                            processedPart = processedLines.join('\n');
-                            streamingPart = streamingLines.join('\n');
-                            if (processedPart && streamingPart) {
-                                streamingPart = '\n' + streamingPart; // 줄바꿈 복원
-                            }
-                        }
-                        
-                        // 스트리밍 부분에서만 타이핑 효과 적용
-                        const currentStreamingLength = KachiCore.displayedLength - processedPart.length;
-                        const streamingDisplayLength = Math.min(streamingPart.length, Math.max(0, currentStreamingLength) + charsToAdd);
-                        const displayedStreamingPart = streamingPart.substring(0, streamingDisplayLength);
-                        
-                        // 최종 표시할 텍스트: 처리된 부분 + 스트리밍되는 부분
-                        const finalDisplayText = processedPart + displayedStreamingPart;
-                        
-                        // 이미지 태그 완성도 검사 (스트리밍 부분에서만)
+                        // 이미지 태그 완성도 검사 - 미완성 태그 방지
                         let safeDisplayText = finalDisplayText;
-                        const lastImgStart = displayedStreamingPart.lastIndexOf('<img');
-                        const lastImgEnd = displayedStreamingPart.lastIndexOf('>');
+                        const lastImgStart = finalDisplayText.lastIndexOf('<img');
+                        const lastImgEnd = finalDisplayText.lastIndexOf('>');
                         
-                        // 스트리밍 부분에 미완성 이미지 태그가 있으면 해당 부분을 제외
+                        // 미완성 이미지 태그가 있으면 해당 부분을 제외
                         if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
-                            const safeStreamingPart = displayedStreamingPart.substring(0, lastImgStart);
-                            safeDisplayText = processedPart + safeStreamingPart;
+                            safeDisplayText = finalDisplayText.substring(0, lastImgStart);
                         }
                         
                         // 안전한 텍스트로 표시
