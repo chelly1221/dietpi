@@ -758,48 +758,76 @@
                     return;
                 }
                 
-                // 마크다운 스타일 이미지 URL 패턴: [text](URL) 또는 [URL](URL) 형태 - 이중 URL 지원
+                // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리
+                const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
+                const doubleUrlMatch = line.match(doubleUrlPattern);
+                
+                if (doubleUrlMatch) {
+                    const urlInBrackets = doubleUrlMatch[1];
+                    const urlInParentheses = doubleUrlMatch[2];
+                    
+                    // 두 URL이 동일한지 확인 (진정한 이중 URL인지 검증)
+                    if (urlInBrackets === urlInParentheses) {
+                        let originalImageUrl = urlInParentheses;
+                        console.log('🔄 DOUBLE URL detected (priority 1):', line);
+                        console.log('🖼️ Processing double URL:', originalImageUrl);
+                        
+                        originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                        console.log('🧹 Cleaned double URL:', originalImageUrl);
+                        
+                        // 이미 처리된 이미지가 아닌 경우에만 추가
+                        if (!processedImageUrls.has(originalImageUrl)) {
+                            completeImages.push({
+                                lineIndex,
+                                originalUrl: originalImageUrl,
+                                type: 'double-url',
+                                fullLine: line
+                            });
+                            processedImageUrls.add(originalImageUrl);
+                            console.log('✅ Added double URL for real-time processing');
+                        } else {
+                            console.log('⏭️ Skipping already processed double URL');
+                        }
+                        return;
+                    } else {
+                        console.log('⚠️ URL mismatch in double pattern, treating as regular markdown');
+                    }
+                }
+                
+                // 우선순위 2: 일반 마크다운 패턴 [text](URL) - 이중 URL이 아닌 경우만
                 const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
                 if (markdownMatch) {
-                    let originalImageUrl = markdownMatch[1]; // 직접 추출된 완전한 URL 사용
-                    
-                    // 이중 URL 패턴 감지: [URL](URL) 형태
-                    const doubleUrlPattern = new RegExp(`\\[${originalImageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`);
-                    const isDoubleUrl = doubleUrlPattern.test(line);
-                    
-                    console.log('🖼️ Found markdown image URL during streaming:', originalImageUrl);
-                    if (isDoubleUrl) {
-                        console.log('🔄 Double URL detected in real-time streaming:', line);
-                    }
+                    let originalImageUrl = markdownMatch[1];
+                    console.log('🖼️ Found regular markdown URL (priority 2):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
-                    console.log('🧹 Cleaned URL:', originalImageUrl);
+                    console.log('🧹 Cleaned markdown URL:', originalImageUrl);
                     
                     // 이미 처리된 이미지가 아닌 경우에만 추가
                     if (!processedImageUrls.has(originalImageUrl)) {
                         completeImages.push({
                             lineIndex,
                             originalUrl: originalImageUrl,
-                            type: isDoubleUrl ? 'markdown-double' : 'markdown',
-                            fullLine: line // 전체 줄 정보 저장 (디버깅용)
+                            type: 'markdown',
+                            fullLine: line
                         });
                         processedImageUrls.add(originalImageUrl);
-                        console.log('✅ Added markdown image for real-time processing (type:', isDoubleUrl ? 'double-url' : 'normal', ')');
+                        console.log('✅ Added regular markdown image for real-time processing');
                     } else {
                         console.log('⏭️ Skipping already processed markdown image');
                     }
                     return;
                 }
                 
-                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file)
+                // 우선순위 3: 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 마크다운이 아닌 경우만
                 const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s\)\]]+/;
                 const normalMatch = line.match(normalImagePattern);
                 
                 if (normalMatch) {
                     let originalImageUrl = normalMatch[0];
-                    console.log('🖼️ Found normal image URL during streaming:', originalImageUrl);
+                    console.log('🖼️ Found plain URL (priority 3):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     console.log('🧹 Cleaned URL:', originalImageUrl);
@@ -1357,36 +1385,61 @@
                     return;
                 }
                 
-                // 마크다운 스타일 이미지 URL 패턴 확인 (중복 URL 처리 포함)
-                // 패턴: [URL](URL) 또는 [text](URL) 형태 - 이중 URL 완벽 지원
+                // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리 (display processing)
+                const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
+                const doubleUrlMatch = line.match(doubleUrlPattern);
+                
+                if (doubleUrlMatch) {
+                    const urlInBrackets = doubleUrlMatch[1];
+                    const urlInParentheses = doubleUrlMatch[2];
+                    
+                    // 두 URL이 동일한지 확인 (진정한 이중 URL인지 검증)
+                    if (urlInBrackets === urlInParentheses) {
+                        let originalImageUrl = urlInParentheses;
+                        console.log("🔄 DOUBLE URL detected in display processing (priority 1):", line);
+                        console.log("🖼️ Processing double URL for display:", originalImageUrl);
+                        
+                        // URL 정리 (끝의 ']' 문자 제거 등)
+                        originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                        
+                        // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
+                        if (processedUrls.has(originalImageUrl)) {
+                            console.log("🔄 Double URL already processed in display block, skipping:", originalImageUrl);
+                            processedLines.push(line); // 원본 줄 유지
+                            return;
+                        }
+                        
+                        // 처리된 URL로 표시
+                        processedUrls.add(originalImageUrl);
+                        
+                        // 프록시 URL로 변환
+                        const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
+                        
+                        // 전체 줄을 이미지 태그로 교체
+                        const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
+                        processedLines.push(imageTag);
+                        return;
+                    } else {
+                        console.log("⚠️ URL mismatch in double pattern, treating as regular markdown");
+                    }
+                }
+                
+                // 우선순위 2: 일반 마크다운 패턴 [text](URL) - 이중 URL이 아닌 경우만 (display processing)
                 const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
                 if (markdownMatch) {
                     let originalImageUrl = markdownMatch[1];
-                    
-                    // 중복 URL 체크 - 같은 줄에서 URL이 중복으로 나타나는 경우 처리
-                    // 예: [http://host/image.jpg](http://host/image.jpg) 형태
-                    const duplicateUrlPattern = new RegExp(`\\[${originalImageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'i');
-                    const hasDuplicateUrl = duplicateUrlPattern.test(line);
-                    
-                    console.log("🖼️ Found markdown image URL in display processing:", originalImageUrl);
-                    if (hasDuplicateUrl) {
-                        console.log("🔄 DOUBLE URL detected in display processing:", line);
-                    }
+                    console.log("🖼️ Found regular markdown URL in display processing (priority 2):", originalImageUrl);
                     
                     // URL 정리 (끝의 ']' 문자 제거 등)
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     
                     // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
                     if (processedUrls.has(originalImageUrl)) {
-                        console.log("🔄 URL already processed in display block, skipping:", originalImageUrl);
+                        console.log("🔄 Regular markdown URL already processed in display block, skipping:", originalImageUrl);
                         processedLines.push(line); // 원본 줄 유지
                         return;
-                    }
-                    
-                    if (hasDuplicateUrl) {
-                        console.log("🔄 Processing double URL in final display:", originalImageUrl);
                     }
                     
                     // 처리된 URL로 표시
@@ -1395,19 +1448,19 @@
                     // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
                     
-                    // 전체 줄을 이미지 태그로 교체 (중복 URL 상관없이 하나의 이미지로)
+                    // 전체 줄을 이미지 태그로 교체
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
                     processedLines.push(imageTag);
                     return;
                 }
                 
-                // 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 끝의 ']' 제외
+                // 우선순위 3: 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 마크다운이 아닌 경우만 (display processing)
                 const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s)\]]+/;
                 const normalMatch = line.match(normalImagePattern);
                 
                 if (normalMatch) {
                     let originalImageUrl = normalMatch[0];
-                    console.log("🖼️ Found normal image URL:", originalImageUrl);
+                    console.log("🖼️ Found plain URL in display processing (priority 3):", originalImageUrl);
                     
                     // URL 정리 (끝의 ']' 문자 제거 등)
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
