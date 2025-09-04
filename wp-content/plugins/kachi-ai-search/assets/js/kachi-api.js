@@ -819,14 +819,13 @@
             const completeImages = this.detectCompleteImages(text, processedImageUrls);
             
             if (completeImages.length === 0) {
-                return { processedText: text, cutoffLineIndex: -1 }; // 새로운 완성된 이미지가 없으면 원본 반환
+                return { processedText: text }; // 새로운 완성된 이미지가 없으면 원본 반환
             }
             
             console.log('🖼️ Found', completeImages.length, 'new complete images for real-time processing');
             
             // 줄 단위로 분리하여 처리
             const lines = text.split('\n');
-            let lastProcessedLineIndex = -1;
             
             completeImages.forEach(imageInfo => {
                 const { lineIndex, originalUrl } = imageInfo;
@@ -839,18 +838,14 @@
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalUrl}">`;
                     lines[lineIndex] = imageTag;
                     
-                    // 마지막으로 처리된 라인 인덱스 업데이트
-                    lastProcessedLineIndex = Math.max(lastProcessedLineIndex, lineIndex);
-                    
                     console.log('🖼️ Real-time processed image:', originalUrl, 'at line', lineIndex);
                 }
             });
             
             const processedText = lines.join('\n');
+            console.log('🖼️ Image processing completed without cutoff logic');
             
-            console.log('🖼️ Image processing cutoff line index set to:', lastProcessedLineIndex);
-            
-            return { processedText, cutoffLineIndex: lastProcessedLineIndex };
+            return { processedText };
         },
 
         // 스트림 버퍼 플러시 - 실시간 이미지 렌더링 개선
@@ -877,11 +872,6 @@
             // 처리된 이미지 URL 추적을 위한 Set 초기화 (메시지별로)
             if (!messageElement._processedImageUrls) {
                 messageElement._processedImageUrls = new Set();
-            }
-            
-            // 처리된 라인 인덱스 추적 초기화 (메시지별로)
-            if (messageElement._processedLineIndex === undefined) {
-                messageElement._processedLineIndex = -1;
             }
             
             // 최종 플러시인 경우 전체 내용을 포맷팅
@@ -927,16 +917,9 @@
                             mathDetected = true;
                         }
                         
-                        // 실시간 이미지 처리 - 완성된 이미지만 처리, 라인 기반 커트오프
+                        // 실시간 이미지 처리 - URL 기반 추적으로 단순화
                         const imageResult = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
                         const processedText = imageResult.processedText;
-                        const newCutoffLineIndex = imageResult.cutoffLineIndex;
-                        
-                        // 이미지 처리 상태 업데이트 (cutoff 시스템 단순화)
-                        if (newCutoffLineIndex > (messageElement._processedLineIndex || -1)) {
-                            messageElement._processedLineIndex = newCutoffLineIndex;
-                            console.log('🖼️ Updated processed line index to:', newCutoffLineIndex);
-                        }
                         
                         // 단순화된 표시 로직 - 전체 처리된 텍스트를 점진적으로 표시
                         const targetLength = Math.min(processedText.length, KachiCore.displayedLength + charsToAdd);
