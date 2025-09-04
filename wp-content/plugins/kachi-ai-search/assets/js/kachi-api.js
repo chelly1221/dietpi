@@ -1401,41 +1401,6 @@
             return processedLines.join('\n');
         },
 
-        // 저장용 이미지 URL 처리 - 원본 URL 유지
-        processImageUrlsForStorage: function(text) {
-            // 줄 단위로 분리
-            const lines = text.split('\n');
-            const processedLines = [];
-            
-            // 이미지 URL 패턴 (backend API URLs) - 끝의 ']' 제외
-            const imageUrlPattern = /https?:\/\/[^\s\)\]]+:8001\/images\/[^\s\)\]]+/;
-            
-            lines.forEach(line => {
-                // 현재 줄에 이미지 URL이 포함되어 있는지 확인
-                if (imageUrlPattern.test(line)) {
-                    // 이미지 URL 추출
-                    const match = line.match(imageUrlPattern);
-                    if (match) {
-                        let originalImageUrl = match[0];
-                        console.log("💾 Found image URL for storage:", originalImageUrl);
-                        
-                        // URL 정리 (끝의 ']' 문자 제거 등)
-                        originalImageUrl = this.cleanImageUrl(originalImageUrl);
-                        
-                        console.log("💾 Keeping cleaned original image URL for storage:", originalImageUrl);
-                        
-                        // 원본 URL로 이미지 태그 생성 (저장용)
-                        processedLines.push(`<img src="${originalImageUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;">`);
-                    } else {
-                        processedLines.push(line);
-                    }
-                } else {
-                    processedLines.push(line);
-                }
-            });
-            
-            return processedLines.join('\n');
-        },
         
         // 이미지 태그 수정 (프록시 URL 적용) - 개선된 버전
         fixImgTags: function(htmlStr) {
@@ -1620,16 +1585,10 @@
                     return streamBuffer; // 실패 시 원본 반환
                 }
                 
-                // 2. 저장을 위해 이미지 URL 처리 (원본 URL 유지)
-                const storageContent = this.processImageUrlsForStorage(fixedContent);
-                if (!this._validateProcessingStep('processImageUrlsForStorage', fixedContent, storageContent)) {
+                // 2. MathJax 콘텐츠 정리
+                const cleanedContent = this.cleanMathJaxContent(fixedContent);
+                if (!this._validateProcessingStep('cleanMathJaxContent', fixedContent, cleanedContent)) {
                     return fixedContent; // 이전 단계 결과 반환
-                }
-                
-                // 3. MathJax 콘텐츠 정리
-                const cleanedContent = this.cleanMathJaxContent(storageContent);
-                if (!this._validateProcessingStep('cleanMathJaxContent', storageContent, cleanedContent)) {
-                    return storageContent; // 이전 단계 결과 반환
                 }
                 
                 console.log('✅ Content processing completed successfully:', {
