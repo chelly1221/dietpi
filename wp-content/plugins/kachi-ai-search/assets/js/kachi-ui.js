@@ -924,6 +924,11 @@
                     messageContent += `<div class="modified-query-text">${KachiCore.escapeHtml(processedQuery)}</div>`;
                 }
                 
+                // 메시지 콘텐츠에 이미지 처리 적용 후 저장 (unrendering 방지)
+                if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
+                    messageContent = window.KachiAPI.processImageUrlsForDisplay(messageContent);
+                    console.log("🖼️ Processed images in edited message content before storage");
+                }
                 message.content = messageContent;
                 
                 // UI에서 메시지 업데이트

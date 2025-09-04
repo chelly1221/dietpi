@@ -1805,7 +1805,7 @@
             
             try {
                 // 마지막 시도: DOM에서 어떤 콘텐츠든 추출
-                const fallbackContent = this._extractContentFromDOM(
+                let fallbackContent = this._extractContentFromDOM(
                     messageElement.querySelector('.message-text')
                 ) || '❌ 콘텐츠를 불러올 수 없습니다.';
                 
