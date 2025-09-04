@@ -1335,17 +1335,24 @@
             return cleanUrl;
         },
         
-        // 이미지 URL 처리 함수 - 마크다운 링크 처리 개선
+        // 이미지 URL 처리 함수 - 중복 URL 및 마크다운 링크 처리 개선
         processImageUrlsForDisplay: function(text) {
-            // 이미 처리된 이미지는 다시 처리하지 않음
+            // 이미 처리된 이미지는 다시 처리하지 않음 (더 강화된 검사)
             if (text.includes('<img') && text.includes('action=kachi_proxy_image')) {
                 console.log("🖼️ Images already processed for display, skipping");
+                return text;
+            }
+            
+            // 프록시 URL이 이미 있는지 추가 확인
+            if (text.includes('/?action=kachi_proxy_image&url=')) {
+                console.log("🖼️ Proxy URLs already present, skipping processing");
                 return text;
             }
             
             // 줄 단위로 처리
             const lines = text.split('\n');
             const processedLines = [];
+            const processedUrls = new Set(); // 이미 처리된 URL 추적
             
             lines.forEach(line => {
                 // 이미 img 태그가 있는 줄은 건너뛰기
@@ -1354,7 +1361,8 @@
                     return;
                 }
                 
-                // 마크다운 스타일 이미지 URL 패턴 우선 확인: something](http://host:8001/images/file)
+                // 마크다운 스타일 이미지 URL 패턴 확인 (중복 URL 처리 포함)
+                // 패턴: [URL](URL) 또는 [text](URL) 형태
                 const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)\]]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
@@ -1365,10 +1373,29 @@
                     // URL 정리 (끝의 ']' 문자 제거 등)
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     
+                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
+                    if (processedUrls.has(originalImageUrl)) {
+                        console.log("🔄 URL already processed in this block, skipping:", originalImageUrl);
+                        processedLines.push(line); // 원본 줄 유지
+                        return;
+                    }
+                    
+                    // 중복 URL 체크 - 같은 줄에서 URL이 중복으로 나타나는 경우 처리
+                    // 예: [http://host/image.jpg](http://host/image.jpg) 형태
+                    const duplicateUrlPattern = new RegExp(`\\[${originalImageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'i');
+                    const hasDuplicateUrl = duplicateUrlPattern.test(line);
+                    
+                    if (hasDuplicateUrl) {
+                        console.log("🔄 Handling duplicate URL in markdown format:", originalImageUrl);
+                    }
+                    
+                    // 처리된 URL로 표시
+                    processedUrls.add(originalImageUrl);
+                    
                     // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
                     
-                    // 전체 줄을 이미지 태그로 교체
+                    // 전체 줄을 이미지 태그로 교체 (중복 URL 상관없이 하나의 이미지로)
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
                     processedLines.push(imageTag);
                     return;
@@ -1384,6 +1411,16 @@
                     
                     // URL 정리 (끝의 ']' 문자 제거 등)
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    
+                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
+                    if (processedUrls.has(originalImageUrl)) {
+                        console.log("🔄 URL already processed in this block, skipping:", originalImageUrl);
+                        processedLines.push(line); // 원본 줄 유지
+                        return;
+                    }
+                    
+                    // 처리된 URL로 표시
+                    processedUrls.add(originalImageUrl);
                     
                     // 프록시 URL로 변환
                     const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
