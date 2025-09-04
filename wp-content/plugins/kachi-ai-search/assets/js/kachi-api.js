@@ -930,18 +930,27 @@
                         const imageResult = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
                         const processedText = imageResult.processedText;
                         
-                        // 단순화된 표시 로직 - 전체 처리된 텍스트를 점진적으로 표시
-                        const targetLength = Math.min(processedText.length, KachiCore.displayedLength + charsToAdd);
-                        const finalDisplayText = processedText.substring(0, targetLength);
+                        // 이미지 변환으로 인한 길이 변화 처리
+                        let safeDisplayText;
+                        if (processedText !== displayText) {
+                            // 이미지가 처리된 경우: 전체 처리된 텍스트를 사용
+                            safeDisplayText = processedText;
+                            console.log('🖼️ Image processed - using full processed text, length:', processedText.length);
+                        } else {
+                            // 이미지 처리가 없는 경우: 점진적 표시 적용
+                            const targetLength = Math.min(processedText.length, KachiCore.displayedLength + charsToAdd);
+                            safeDisplayText = processedText.substring(0, targetLength);
+                        }
                         
-                        // 이미지 태그 완성도 검사 - 미완성 태그 방지
-                        let safeDisplayText = finalDisplayText;
-                        const lastImgStart = finalDisplayText.lastIndexOf('<img');
-                        const lastImgEnd = finalDisplayText.lastIndexOf('>');
+                        // 이미지 태그 완성도 검사 - 미완성 태그 방지 (더 강화된 검사)
+                        const lastImgStart = safeDisplayText.lastIndexOf('<img');
+                        const lastImgEnd = safeDisplayText.lastIndexOf('>');
                         
                         // 미완성 이미지 태그가 있으면 해당 부분을 제외
                         if (lastImgStart !== -1 && (lastImgEnd === -1 || lastImgEnd < lastImgStart)) {
-                            safeDisplayText = finalDisplayText.substring(0, lastImgStart);
+                            const beforeImg = safeDisplayText.substring(0, lastImgStart);
+                            console.log('⚠️ Incomplete img tag detected, truncating at:', lastImgStart);
+                            safeDisplayText = beforeImg;
                         }
                         
                         // 안전한 텍스트로 표시
@@ -949,8 +958,15 @@
                             const formattedText = this.formatResponsePreservingImages(safeDisplayText);
                             textElement.innerHTML = formattedText;
                             
-                            // 표시된 길이 업데이트 (전체 텍스트 기준)
-                            KachiCore.displayedLength = safeDisplayText.length;
+                            // 표시된 길이 업데이트 - 원본 버퍼 기준으로 조정
+                            if (processedText !== displayText) {
+                                // 이미지가 처리된 경우: 원본 텍스트 길이까지 건너뛰기
+                                KachiCore.displayedLength = displayText.length;
+                                console.log('🖼️ Updated display length after image processing:', KachiCore.displayedLength);
+                            } else {
+                                // 일반적인 경우: 실제 표시된 길이로 업데이트  
+                                KachiCore.displayedLength = Math.min(KachiCore.displayedLength + charsToAdd, KachiCore.streamBuffer.length);
+                            }
                         }
                         
                         // 수식이 감지되면 즉시 렌더링
