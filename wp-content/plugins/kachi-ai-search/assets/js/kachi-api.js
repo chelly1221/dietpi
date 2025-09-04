@@ -1108,6 +1108,9 @@
             // 이미지 URL 패턴들을 마크다운 처리 전에 감지하여 보호
             console.log('🖼️ [DEBUG] Starting URL pattern matching...');
             
+            // scope 참조 저장
+            const self = this;
+            
             // 1. 이중 URL 패턴: [http://...](http://...) - 단순화된 패턴
             const simpleDoubleUrlPattern = /\[(https?:\/\/[^\]]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi;
             const doubleUrlMatches = text.match(simpleDoubleUrlPattern);
@@ -1118,7 +1121,7 @@
                 // 두 URL이 같거나 유사한 경우 이미지로 처리
                 if (url1 === url2 || Math.abs(url1.length - url2.length) <= 3) {
                     const finalUrl = url1.length >= url2.length ? url1 : url2;
-                    const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+                    const proxyUrl = self.convertToProxyImageUrl(finalUrl);
                     const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                     
                     const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
@@ -1137,7 +1140,7 @@
             
             text = text.replace(simpleMarkdownPattern, function(match, alt, url, ext) {
                 console.log('🖼️ [DEBUG] Markdown image match found:', { match, alt, url });
-                const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
+                const proxyUrl = self.convertToProxyImageUrl(url);
                 const imgTag = `<img src="${proxyUrl}" alt="${alt || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                 
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
@@ -1153,7 +1156,7 @@
             
             text = text.replace(simplePlainUrlPattern, function(match, url, ext) {
                 console.log('🖼️ [DEBUG] Plain URL match found:', { match, url });
-                const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
+                const proxyUrl = self.convertToProxyImageUrl(url);
                 const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                 
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
@@ -1176,7 +1179,7 @@
                 if ((url1 === url2 || Math.abs(url1.length - url2.length) <= 3) && 
                     (url1.includes('/images/') || url2.includes('/images/'))) {
                     const finalUrl = url1.length >= url2.length ? url1 : url2;
-                    const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+                    const proxyUrl = self.convertToProxyImageUrl(finalUrl);
                     const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                     
                     const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
