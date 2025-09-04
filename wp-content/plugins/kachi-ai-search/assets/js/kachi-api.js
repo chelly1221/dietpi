@@ -990,9 +990,8 @@
             
             // 최종 플러시인 경우 전체 내용을 포맷팅
             if (isFinal && KachiCore.streamBuffer) {
-                // 남은 이미지들을 실시간 처리한 후 최종 포맷팅
-                const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                const formattedContent = this.formatResponsePreservingImages(imageResult.processedText);
+                // 최종 포맷팅 (이미지 처리 포함)
+                const formattedContent = this.formatResponsePreservingImages(KachiCore.streamBuffer);
                 textElement.innerHTML = formattedContent;
                 KachiCore.streamBuffer = '';
                 return;
@@ -1031,21 +1030,9 @@
                             mathDetected = true;
                         }
                         
-                        // 실시간 이미지 처리 - URL 기반 추적으로 단순화
-                        const imageResult = this.processImagesRealtime(displayText, messageElement._processedImageUrls);
-                        const processedText = imageResult.processedText;
-                        
-                        // 이미지 변환으로 인한 길이 변화 처리
-                        let safeDisplayText;
-                        if (processedText !== displayText) {
-                            // 이미지가 처리된 경우: 전체 처리된 텍스트를 사용
-                            safeDisplayText = processedText;
-                            console.log('🖼️ Image processed - using full processed text, length:', processedText.length);
-                        } else {
-                            // 이미지 처리가 없는 경우: 점진적 표시 적용
-                            const targetLength = Math.min(processedText.length, KachiCore.displayedLength + charsToAdd);
-                            safeDisplayText = processedText.substring(0, targetLength);
-                        }
+                        // 점진적 표시를 위한 안전한 길이 계산
+                        const targetLength = Math.min(displayText.length, KachiCore.displayedLength + charsToAdd);
+                        let safeDisplayText = displayText.substring(0, targetLength);
                         
                         // 이미지 태그 완성도 검사 - 미완성 태그 방지 (더 강화된 검사)
                         const lastImgStart = safeDisplayText.lastIndexOf('<img');
@@ -1063,15 +1050,8 @@
                             const formattedText = this.formatResponsePreservingImages(safeDisplayText);
                             textElement.innerHTML = formattedText;
                             
-                            // 표시된 길이 업데이트 - 원본 버퍼 기준으로 조정
-                            if (processedText !== displayText) {
-                                // 이미지가 처리된 경우: 원본 텍스트 길이까지 건너뛰기
-                                KachiCore.displayedLength = displayText.length;
-                                console.log('🖼️ Updated display length after image processing:', KachiCore.displayedLength);
-                            } else {
-                                // 일반적인 경우: 실제 표시된 길이로 업데이트  
-                                KachiCore.displayedLength = Math.min(KachiCore.displayedLength + charsToAdd, KachiCore.streamBuffer.length);
-                            }
+                            // 표시된 길이 업데이트
+                            KachiCore.displayedLength = Math.min(KachiCore.displayedLength + charsToAdd, KachiCore.streamBuffer.length);
                         }
                         
                         // 수식이 감지되면 즉시 렌더링
@@ -1083,9 +1063,8 @@
                         // 다음 글자 표시를 위한 타이머
                         KachiCore.typeTimer = setTimeout(typeNextChars, 30);
                     } else {
-                        // 모든 글자를 표시했으면 실시간 처리 후 최종 포맷팅
-                        const imageResult = this.processImagesRealtime(KachiCore.streamBuffer, messageElement._processedImageUrls);
-                        const finalContent = this.formatResponsePreservingImages(imageResult.processedText);
+                        // 모든 글자를 표시했으면 최종 포맷팅
+                        const finalContent = this.formatResponsePreservingImages(KachiCore.streamBuffer);
                         textElement.innerHTML = finalContent;
                         KachiCore.isCharStreaming = false;
                         
@@ -1105,9 +1084,46 @@
             const imagePlaceholders = {};
             let imageCounter = 0;
             
+            // 기존 이미지 태그 보호
             text = text.replace(/<img[^>]*>/g, function(match) {
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                 imagePlaceholders[placeholder] = match;
+                return placeholder;
+            });
+            
+            // 이미지 URL 패턴들을 마크다운 처리 전에 감지하여 보호
+            // 1. 이중 URL 패턴: [http://...](http://...)
+            text = text.replace(/\[\s*(https?:\/\/[^\s\]]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\]]*)?[^\s\]]*)\s*\]\(\s*(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\)]*)?[^\s\)]*)\s*\)/gi, function(match, url1, url2) {
+                // 두 URL이 같거나 유사한 경우 이미지로 처리
+                if (url1 === url2 || Math.abs(url1.length - url2.length) <= 3) {
+                    const finalUrl = url1.length >= url2.length ? url1 : url2;
+                    const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+                    const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                    
+                    const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                    imagePlaceholders[placeholder] = imgTag;
+                    return placeholder;
+                }
+                return match; // URL이 다른 경우 원래 텍스트 유지
+            });
+            
+            // 2. 일반 마크다운 이미지 패턴: ![alt](http://...)
+            text = text.replace(/!\[([^\]]*)\]\(\s*(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s\)]*)?[^\s\)]*)\s*\)/gi, function(match, alt, url) {
+                const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
+                const imgTag = `<img src="${proxyUrl}" alt="${alt || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = imgTag;
+                return placeholder;
+            });
+            
+            // 3. 단순 URL 패턴 (독립된 줄에 있는 경우)
+            text = text.replace(/^\s*(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s]*)?)\s*$/gmi, function(match, url) {
+                const proxyUrl = `http://192.168.10.101:8001/proxy-image?url=${encodeURIComponent(url)}`;
+                const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = imgTag;
                 return placeholder;
             });
             
