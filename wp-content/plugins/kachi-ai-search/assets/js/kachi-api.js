@@ -1269,18 +1269,25 @@
         
         // 단일 라인의 이미지 URL 처리
         _processImageLine: function(line, processedUrls) {
+            // 먼저 마크다운 링크의 URL을 프록시 URL로 변경 (링크 형태 유지)
+            line = line.replace(/\[([^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/g, (match, text, url) => {
+                const cleanUrl = this.cleanImageUrl(url);
+                if (!processedUrls.has(cleanUrl)) {
+                    processedUrls.add(cleanUrl);
+                    const proxyUrl = this.convertToProxyImageUrl(cleanUrl);
+                    console.log('🔗 Converting markdown link URL:', url, '->', proxyUrl);
+                    return `[${text}](${proxyUrl})`;
+                }
+                return match;
+            });
+            
             const patterns = [
                 // 이중 URL 패턴: [URL](URL)
                 {
                     regex: /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/,
                     extract: (match) => match[1] === match[2] ? match[1] : null
                 },
-                // 마크다운 패턴: [text](URL)
-                {
-                    regex: /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/,
-                    extract: (match) => match[1]
-                },
-                // 단순 URL 패턴
+                // 단순 URL 패턴 (마크다운이 아닌 경우만)
                 {
                     regex: /https?:\/\/[^:\s]+:8001\/images\/[^\s)\]]+/,
                     extract: (match) => match[0]
