@@ -116,6 +116,10 @@ class Kachi_Query_System {
         // 쇼트코드는 항상 등록
         add_action('init', array($this, 'register_shortcodes_early'));
         
+        // 프록시 이미지 엔드포인트 등록
+        add_action('init', array($this, 'add_proxy_image_endpoint'));
+        add_action('template_redirect', array($this, 'handle_proxy_image_endpoint'));
+        
         // AJAX 핸들러는 wp_doing_ajax일 때만
         if (wp_doing_ajax()) {
             $ajax = new Kachi_Ajax();
@@ -325,6 +329,30 @@ class Kachi_Query_System {
     public function run() {
         $this->loader->run();
     }
+    
+    /**
+     * 프록시 이미지 엔드포인트 추가
+     */
+    public function add_proxy_image_endpoint() {
+        add_rewrite_rule('^proxy-image/?$', 'index.php?proxy_image=1', 'top');
+        add_rewrite_tag('%proxy_image%', '([^&]+)');
+    }
+    
+    /**
+     * 프록시 이미지 엔드포인트 처리
+     */
+    public function handle_proxy_image_endpoint() {
+        if (get_query_var('proxy_image')) {
+            // AJAX 클래스 로드
+            if (!class_exists('Kachi_Ajax')) {
+                require_once KACHI_PLUGIN_DIR . 'includes/class-kachi-ajax.php';
+            }
+            
+            $ajax = new Kachi_Ajax();
+            $ajax->proxy_image();
+            exit;
+        }
+    }
 }
 
 /**
@@ -365,6 +393,9 @@ function kachi_query_system_activate() {
     
     // DB 버전 저장
     add_option('kachi_db_version', KACHI_DB_VERSION);
+    
+    // 리라이트 규칙 플러시 (새로운 엔드포인트를 위해)
+    flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, 'kachi_query_system_activate');
 
@@ -411,7 +442,8 @@ add_action('plugins_loaded', 'kachi_update_db_check');
  * 플러그인 비활성화
  */
 function kachi_query_system_deactivate() {
-    // 비활성화 시 특별한 작업 없음
+    // 리라이트 규칙 플러시 (엔드포인트 제거)
+    flush_rewrite_rules();
 }
 register_deactivation_hook(__FILE__, 'kachi_query_system_deactivate');
 

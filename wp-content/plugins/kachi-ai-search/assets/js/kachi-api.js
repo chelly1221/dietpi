@@ -1222,10 +1222,9 @@
             const match = cleanUrl.match(apiPattern);
             
             if (match && match[1]) {
-                // 프록시 URL로 변환
+                // 프록시 URL로 변환 (HTTPS 사이트 URL 형식)
                 const imagePath = match[1];
-                const proxyUrl = window.kachi_ajax?.ajax_url + 
-                    '?action=kachi_proxy_image&path=' + encodeURIComponent(imagePath);
+                const proxyUrl = window.location.origin + '/proxy-image?path=' + encodeURIComponent(imagePath);
                 return proxyUrl;
             }
             
