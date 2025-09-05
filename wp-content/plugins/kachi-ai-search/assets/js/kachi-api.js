@@ -1308,8 +1308,11 @@
         
         // 이미지 태그 수정 (프록시 URL 적용) - 개선된 버전
         fixImgTags: function(htmlStr) {
+            console.log('🔧 fixImgTags called with content:', htmlStr.substring(0, 200) + '...');
+            
             // 이미 프록시 URL로 처리된 이미지가 있는지 확인
             if (htmlStr.includes('/proxy-image?path=') || htmlStr.includes('action=kachi_proxy_image')) {
+                console.log('✅ Already contains proxy URLs, skipping processing');
                 return htmlStr;
             }
             
@@ -1331,6 +1334,7 @@
             
             // 6. API 서버의 이미지 URL만 프록시 URL로 변환
             const self = this;
+            let imageReplacements = 0;
             htmlStr = htmlStr.replace(/<img\s+([^>]*?)src="([^"]+)"([^>]*?)>/g, function(match, before, src, after) {
                 // 이미 프록시 URL이거나 데이터 URL이면 건너뛰기
                 if (src.includes('/proxy-image?path=') || src.includes('action=kachi_proxy_image') || src.startsWith('data:')) {
@@ -1340,11 +1344,19 @@
                 // API 서버 이미지 URL인 경우만 변환
                 if (src.includes(':8001/images/')) {
                     const proxySrc = self.convertToProxyImageUrl(src);
+                    imageReplacements++;
+                    console.log('🖼️ Converting image URL:', src, '->', proxySrc);
                     return '<img ' + before + 'src="' + proxySrc + '"' + after + '>';
                 }
                 
                 return match;
             });
+            
+            if (imageReplacements > 0) {
+                console.log('✅ Converted', imageReplacements, 'image URLs to proxy format');
+            } else {
+                console.log('ℹ️ No API server images found to convert');
+            }
             
             return htmlStr;
         },
@@ -1352,12 +1364,19 @@
         // 스트리밍 콘텐츠 캡처 (DOM 추출 방식)
         _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
             try {
-                // DOM에서 직접 텍스트 추출
+                // DOM에서 직접 HTML 콘텐츠 추출 (이미지 태그 보존을 위해 innerHTML 우선)
                 const textElement = messageElement.querySelector('.message-text');
                 if (textElement) {
-                    const domContent = textElement.innerHTML || textElement.textContent || textElement.innerText || '';
+                    // HTML 구조를 보존하기 위해 innerHTML을 우선적으로 사용
+                    let domContent = textElement.innerHTML;
+                    if (!domContent || !domContent.trim()) {
+                        // innerHTML이 없는 경우에만 텍스트 콘텐츠 사용
+                        domContent = textElement.textContent || textElement.innerText || '';
+                    }
+                    
                     if (domContent && domContent.trim()) {
-                        console.log('📄 Captured content from DOM:', domContent.substring(0, 100) + '...');
+                        const isHtmlContent = domContent.includes('<');
+                        console.log('📄 Captured content from DOM (' + (isHtmlContent ? 'HTML' : 'TEXT') + '):', domContent.substring(0, 100) + '...');
                         return this._processStreamContent(domContent);
                     }
                 }
