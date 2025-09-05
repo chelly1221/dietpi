@@ -490,9 +490,9 @@
                 const message = KachiCore.findMessage(messageId);
                 if (message && finalContent) {
                     // 업데이트된 콘텐츠를 메시지에 저장하기 전에 이미지 처리
-                    if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
-                        finalContent = window.KachiAPI.processImageUrlsForDisplay(finalContent);
-                        console.log("🖼️ Processed images in captured content before storage");
+                    if (window.KachiAPI && window.KachiAPI.formatResponsePreservingImages) {
+                        finalContent = window.KachiAPI.formatResponsePreservingImages(finalContent);
+                        console.log("🖼️ Processed images in captured content before storage using working function");
                     }
                     message.content = finalContent;
                     
@@ -545,9 +545,9 @@
                         const message = KachiCore.findMessage(messageId);
                         if (message && partialContent) {
                             // 부분 콘텐츠에도 이미지 처리 적용
-                            if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
-                                partialContent = window.KachiAPI.processImageUrlsForDisplay(partialContent);
-                                console.log("🖼️ Processed images in partial content before storage");
+                            if (window.KachiAPI && window.KachiAPI.formatResponsePreservingImages) {
+                                partialContent = window.KachiAPI.formatResponsePreservingImages(partialContent);
+                                console.log("🖼️ Processed images in partial content before storage using working function");
                             }
                             message.content = partialContent;
                             
@@ -2008,9 +2008,9 @@
                 const message = KachiCore.findMessage(messageId);
                 if (message) {
                     // 폴백 콘텐츠에도 이미지 처리 적용
-                    if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay && fallbackContent !== '❌ 콘텐츠를 불러올 수 없습니다.') {
-                        fallbackContent = window.KachiAPI.processImageUrlsForDisplay(fallbackContent);
-                        console.log("🖼️ Processed images in fallback content before storage");
+                    if (window.KachiAPI && window.KachiAPI.formatResponsePreservingImages && fallbackContent !== '❌ 콘텐츠를 불러올 수 없습니다.') {
+                        fallbackContent = window.KachiAPI.formatResponsePreservingImages(fallbackContent);
+                        console.log("🖼️ Processed images in fallback content before storage using working function");
                     }
                     message.content = fallbackContent;
                     console.log('🔄 Fallback content saved:', {
