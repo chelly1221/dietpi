@@ -310,6 +310,7 @@ class Kachi_Query_System {
         $options = get_option('kachi_settings', array());
         wp_localize_script('kachi-main', 'kachi_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
+            'site_url' => home_url(),
             'nonce' => wp_create_nonce('kachi_ajax_nonce'),
             'plugin_url' => KACHI_PLUGIN_URL,
             'is_user_logged_in' => is_user_logged_in(),

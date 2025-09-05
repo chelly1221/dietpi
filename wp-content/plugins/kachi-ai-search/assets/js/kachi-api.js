@@ -1222,9 +1222,9 @@
             const match = cleanUrl.match(apiPattern);
             
             if (match && match[1]) {
-                // 프록시 URL로 변환 (HTTPS 사이트 URL 형식)
+                // 프록시 URL로 변환 (WordPress 사이트 URL 사용)
                 const imagePath = match[1];
-                const proxyUrl = window.location.origin + '/proxy-image?path=' + encodeURIComponent(imagePath);
+                const proxyUrl = (window.kachi_ajax?.site_url || window.location.origin) + '/proxy-image?path=' + encodeURIComponent(imagePath);
                 return proxyUrl;
             }
             
