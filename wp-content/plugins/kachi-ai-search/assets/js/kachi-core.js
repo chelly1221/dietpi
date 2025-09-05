@@ -443,8 +443,14 @@
                 return false;
             }
             
-            // 콘텐츠가 비어있는 assistant 메시지는 임시 메시지일 가능성
+            // 콘텐츠가 비어있는 assistant 메시지 처리 (스트리밍 중에는 덜 엄격하게)
             if (msg.type === 'assistant' && (!msg.content || msg.content.trim() === '')) {
+                // 스트리밍이 진행 중이거나 최근에 완료된 경우 허용
+                const isRecentMessage = msg.id && (Date.now() - parseInt(msg.id.split('-')[1] || '0')) < 60000; // 1분 이내
+                if (isRecentMessage) {
+                    console.log('🔄 Allowing recent assistant message with empty content during streaming:', msg.id);
+                    return true;
+                }
                 // ID가 임시인지 확인
                 return !msg.id.includes('temp-') && !msg.isTemporary;
             }

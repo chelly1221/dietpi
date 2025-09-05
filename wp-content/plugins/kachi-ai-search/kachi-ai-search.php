@@ -358,6 +358,8 @@ class Kachi_Query_System {
      */
     public function handle_proxy_image_endpoint() {
         if (get_query_var('proxy_image')) {
+            error_log('KACHI: Proxy image endpoint called with query vars: ' . print_r($_GET, true));
+            
             // AJAX 클래스 로드
             if (!class_exists('Kachi_Ajax')) {
                 require_once KACHI_PLUGIN_DIR . 'includes/class-kachi-ajax.php';

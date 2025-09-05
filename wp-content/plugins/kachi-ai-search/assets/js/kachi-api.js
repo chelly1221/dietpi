@@ -457,12 +457,17 @@
                 let finalContent = this._captureStreamingContent(messageElement, messageId);
                 
                 const message = KachiCore.findMessage(messageId);
-                if (message && finalContent) {
-                    // 업데이트된 콘텐츠를 메시지에 저장하기 전에 이미지 처리
-                    if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
-                        finalContent = window.KachiAPI.processImageUrlsForDisplay(finalContent);
+                if (message) {
+                    if (finalContent) {
+                        // 업데이트된 콘텐츠를 메시지에 저장하기 전에 이미지 처리
+                        if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
+                            finalContent = window.KachiAPI.processImageUrlsForDisplay(finalContent);
+                        }
+                        message.content = finalContent;
+                        console.log('✅ Message content updated:', messageId, finalContent.substring(0, 100) + '...');
+                    } else {
+                        console.warn('⚠️ No content captured for message:', messageId);
                     }
-                    message.content = finalContent;
                     
                     // 참조 문서 정보 수집
                     const referencedDocs = messageElement.querySelector('.referenced-docs');
@@ -1331,14 +1336,20 @@
             return htmlStr;
         },
         
-        // 간소화된 스트리밍 콘텐츠 캡처 (스트림 버퍼만 사용)
+        // 스트리밍 콘텐츠 캡처 (DOM 추출 방식)
         _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
             try {
-                // 스트림 버퍼에서 콘텐츠 추출
-                if (KachiCore.streamBuffer && KachiCore.streamBuffer.trim()) {
-                    return this._processStreamContent(KachiCore.streamBuffer);
+                // DOM에서 직접 텍스트 추출
+                const textElement = messageElement.querySelector('.message-text');
+                if (textElement) {
+                    const domContent = textElement.innerHTML || textElement.textContent || textElement.innerText || '';
+                    if (domContent && domContent.trim()) {
+                        console.log('📄 Captured content from DOM:', domContent.substring(0, 100) + '...');
+                        return this._processStreamContent(domContent);
+                    }
                 }
                 
+                console.warn('⚠️ No content found in DOM for message:', messageId);
                 return '';
             } catch (error) {
                 console.error('❌ Error during content capture:', error);

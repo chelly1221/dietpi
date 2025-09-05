@@ -401,10 +401,15 @@ class Kachi_Ajax {
      * 이미지 프록시 처리
      */
     public function proxy_image() {
+        error_log('KACHI: proxy_image() called with $_GET: ' . print_r($_GET, true));
+        
         // 이미지 경로 가져오기
         $image_path = isset($_GET['path']) ? $_GET['path'] : '';
         
+        error_log('KACHI: Proxy image requested for path: ' . $image_path);
+        
         if (empty($image_path)) {
+            error_log('KACHI: Empty image path provided');
             header('HTTP/1.1 404 Not Found');
             exit('Image not found');
         }
