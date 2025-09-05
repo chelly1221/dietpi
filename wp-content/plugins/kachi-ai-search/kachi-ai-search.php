@@ -343,6 +343,12 @@ class Kachi_Query_System {
             flush_rewrite_rules();
             update_option('kachi_plugin_version', KACHI_VERSION);
         }
+        
+        // 강제 플러시 체크 (URL 파라미터 또는 특정 조건)
+        if (isset($_GET['flush_kachi_rules']) && current_user_can('manage_options')) {
+            flush_rewrite_rules();
+            error_log('KACHI: Manual rewrite rules flush triggered');
+        }
     }
     
     /**
@@ -351,12 +357,23 @@ class Kachi_Query_System {
     public function add_proxy_image_endpoint() {
         add_rewrite_rule('^proxy-image/?$', 'index.php?proxy_image=1', 'top');
         add_rewrite_tag('%proxy_image%', '([^&]+)');
+        
+        // 디버깅: 리라이트 규칙이 추가되었는지 확인
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('KACHI: Proxy image rewrite rule added');
+        }
     }
     
     /**
      * 프록시 이미지 엔드포인트 처리
      */
     public function handle_proxy_image_endpoint() {
+        // 디버깅: template_redirect 훅이 실행되는지 확인
+        if (defined('WP_DEBUG') && WP_DEBUG && strpos($_SERVER['REQUEST_URI'], 'proxy-image') !== false) {
+            error_log('KACHI: template_redirect called for proxy-image URL: ' . $_SERVER['REQUEST_URI']);
+            error_log('KACHI: proxy_image query var: ' . get_query_var('proxy_image'));
+        }
+        
         if (get_query_var('proxy_image')) {
             error_log('KACHI: Proxy image endpoint called with query vars: ' . print_r($_GET, true));
             
