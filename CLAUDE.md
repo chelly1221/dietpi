@@ -240,10 +240,12 @@ services:
 
 ### Internal API Integration
 
+**IMPORTANT**: WordPress is the primary user interface and must proxy all backend requests. All user interactions should flow through WordPress, which then routes backend requests to the Haystack AI system.
+
 The WordPress frontend integrates with the backend API:
 - **Internal API URL**: `http://192.168.10.101:8001`
 - **Authentication**: WordPress user metadata (sosok/site)
-- **CORS**: Configured for `http://kac.chelly.kr`
+- **Routing**: All backend services (`/mnt/haystack`) must be accessed through WordPress proxy endpoints
 
 ### Database Configuration
 
