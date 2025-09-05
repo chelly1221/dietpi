@@ -3,7 +3,7 @@
  * Plugin Name: KACHI AI Search
  * Plugin URI: https://3chan.kr
  * Description: KACHI AI 기반 문서 검색 및 질의응답 시스템 - 프록시 API 지원
- * Version: 2.5.4
+ * Version: 2.5.5
  * Author: 3chan
  * Author URI: https://3chan.kr
  * License: GPL v2 or later
@@ -16,14 +16,14 @@ if (!defined('ABSPATH')) {
 }
 
 // 플러그인 상수 정의 - KACHI AI Search
-define('KACHI_AI_SEARCH_VERSION', '2.5.4');
+define('KACHI_AI_SEARCH_VERSION', '2.5.5');
 define('KACHI_AI_SEARCH_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_AI_SEARCH_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('KACHI_AI_SEARCH_DB_VERSION', '1.0');
 
 // Legacy constants for backward compatibility
-define('KACHI_VERSION', '2.5.4');
+define('KACHI_VERSION', '2.5.5');
 define('KACHI_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KACHI_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KACHI_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -342,9 +342,9 @@ add_action('plugins_loaded', 'kachi_query_system_init', 20);
  * 플러그인 활성화
  */
 function kachi_query_system_activate() {
-    // 기본 설정만 추가
+    // 기본 설정만 추가 (API URL은 프론트엔드 관리자에서 설정)
     $default_settings = array(
-        'api_url' => 'http://chelly.kr:8001',
+        'api_url' => '',
         'require_login' => 1,
         'enable_streaming' => 1,
         'max_query_length' => 500

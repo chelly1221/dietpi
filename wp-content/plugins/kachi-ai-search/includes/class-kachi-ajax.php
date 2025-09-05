@@ -76,7 +76,7 @@ class Kachi_Ajax {
         
         // API 설정
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         $endpoint = '/query-stream/';
         
         // 쿼리 파라미터를 수동으로 구성 (FastAPI 형식에 맞게)
@@ -206,7 +206,7 @@ class Kachi_Ajax {
         }
         
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         
         // 쿼리 파라미터를 수동으로 구성 (FastAPI 형식에 맞게)
         $query_parts = array();
@@ -273,7 +273,7 @@ class Kachi_Ajax {
         }
         
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         
         $url = $api_url . '/list-tags/';
         $args = array(
@@ -329,7 +329,7 @@ class Kachi_Ajax {
         }
         
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         
         $url = $api_url . '/list-documents/';
         $args = array(
@@ -417,7 +417,7 @@ class Kachi_Ajax {
         
         // API 서버에서 이미지 가져오기
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         
         // 이미지 URL 구성 (FastAPI의 /images 경로)
         $image_url = $api_url . '/images/' . $image_path;

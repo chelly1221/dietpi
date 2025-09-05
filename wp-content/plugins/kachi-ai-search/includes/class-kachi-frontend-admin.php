@@ -30,7 +30,7 @@ class Kachi_Frontend_Admin {
         
         // 기존 설정 가져오기
         $options = get_option('kachi_settings', array());
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         $require_login = isset($options['require_login']) ? $options['require_login'] : 1;
         $max_query_length = isset($options['max_query_length']) ? $options['max_query_length'] : 500;
         $background_id = isset($options['background_image']) ? $options['background_image'] : '';
@@ -101,7 +101,7 @@ class Kachi_Frontend_Admin {
      * 시스템 정보 섹션 렌더링
      */
     private static function render_info_section($options) {
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         ?>
         <div class="kachi-fa-section active" data-section="info">
             <header class="kachi-fa-section-header">
@@ -228,7 +228,7 @@ class Kachi_Frontend_Admin {
                         <label for="api-url">API 서버 URL</label>
                         <input type="text" id="api-url" class="kachi-fa-input" 
                                value="<?php echo esc_attr($api_url); ?>" 
-                               placeholder="http://chelly.kr:8001">
+                               placeholder="http://192.168.10.101:8001">
                         <p class="kachi-fa-help-text">까치 API 서버의 URL을 입력하세요.</p>
                     </div>
                 </div>
@@ -528,7 +528,7 @@ class Kachi_Frontend_Admin {
         }
         
         $options = get_option('kachi_settings');
-        $api_url = isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001';
+        $api_url = isset($options['api_url']) ? $options['api_url'] : '';
         
         // API 테스트
         $response = wp_remote_get($api_url . '/list-tags', array(

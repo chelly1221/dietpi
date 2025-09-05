@@ -100,7 +100,7 @@ class Kachi_Shortcode {
         // JavaScript 변수를 data 속성으로 전달
         $js_data = array(
             'is_logged_in' => $user_data['is_logged_in'],
-            'api_url' => isset($options['api_url']) ? $options['api_url'] : 'http://chelly.kr:8001',
+            'api_url' => isset($options['api_url']) ? $options['api_url'] : '',
             'user_sosok' => $user_data['sosok'],
             'user_site' => $user_data['site'],
             'facility_definitions' => $user_data['facility_definitions']
