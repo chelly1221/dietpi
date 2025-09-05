@@ -116,12 +116,6 @@ class Kachi_Query_System {
         // 쇼트코드는 항상 등록
         add_action('init', array($this, 'register_shortcodes_early'));
         
-        // 프록시 이미지 엔드포인트 등록
-        add_action('init', array($this, 'add_proxy_image_endpoint'));
-        add_action('template_redirect', array($this, 'handle_proxy_image_endpoint'));
-        
-        // 플러그인 업데이트 시 리라이트 규칙 확인
-        add_action('init', array($this, 'check_rewrite_rules'), 5);
         
         // AJAX 핸들러는 wp_doing_ajax일 때만
         if (wp_doing_ajax()) {
@@ -334,59 +328,6 @@ class Kachi_Query_System {
         $this->loader->run();
     }
     
-    /**
-     * 리라이트 규칙 확인 및 필요시 플러시
-     */
-    public function check_rewrite_rules() {
-        $current_version = get_option('kachi_plugin_version', '0.0.0');
-        if (version_compare($current_version, KACHI_VERSION, '<')) {
-            flush_rewrite_rules();
-            update_option('kachi_plugin_version', KACHI_VERSION);
-        }
-        
-        // 강제 플러시 체크 (URL 파라미터 또는 특정 조건)
-        if (isset($_GET['flush_kachi_rules']) && current_user_can('manage_options')) {
-            flush_rewrite_rules();
-            error_log('KACHI: Manual rewrite rules flush triggered');
-        }
-    }
-    
-    /**
-     * 프록시 이미지 엔드포인트 추가
-     */
-    public function add_proxy_image_endpoint() {
-        add_rewrite_rule('^proxy-image/?$', 'index.php?proxy_image=1', 'top');
-        add_rewrite_tag('%proxy_image%', '([^&]+)');
-        
-        // 디버깅: 리라이트 규칙이 추가되었는지 확인
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('KACHI: Proxy image rewrite rule added');
-        }
-    }
-    
-    /**
-     * 프록시 이미지 엔드포인트 처리
-     */
-    public function handle_proxy_image_endpoint() {
-        // 디버깅: template_redirect 훅이 실행되는지 확인
-        if (defined('WP_DEBUG') && WP_DEBUG && strpos($_SERVER['REQUEST_URI'], 'proxy-image') !== false) {
-            error_log('KACHI: template_redirect called for proxy-image URL: ' . $_SERVER['REQUEST_URI']);
-            error_log('KACHI: proxy_image query var: ' . get_query_var('proxy_image'));
-        }
-        
-        if (get_query_var('proxy_image')) {
-            error_log('KACHI: Proxy image endpoint called with query vars: ' . print_r($_GET, true));
-            
-            // AJAX 클래스 로드
-            if (!class_exists('Kachi_Ajax')) {
-                require_once KACHI_PLUGIN_DIR . 'includes/class-kachi-ajax.php';
-            }
-            
-            $ajax = new Kachi_Ajax();
-            $ajax->proxy_image();
-            exit;
-        }
-    }
 }
 
 /**
@@ -427,14 +368,6 @@ function kachi_query_system_activate() {
     
     // DB 버전 저장
     add_option('kachi_db_version', KACHI_DB_VERSION);
-    
-    // 플러그인 버전 확인 및 리라이트 규칙 플러시
-    $current_version = get_option('kachi_plugin_version', '0.0.0');
-    if (version_compare($current_version, KACHI_VERSION, '<')) {
-        // 새로운 엔드포인트를 위해 리라이트 규칙 플러시
-        flush_rewrite_rules();
-        update_option('kachi_plugin_version', KACHI_VERSION);
-    }
 }
 register_activation_hook(__FILE__, 'kachi_query_system_activate');
 
@@ -481,8 +414,7 @@ add_action('plugins_loaded', 'kachi_update_db_check');
  * 플러그인 비활성화
  */
 function kachi_query_system_deactivate() {
-    // 리라이트 규칙 플러시 (엔드포인트 제거)
-    flush_rewrite_rules();
+    // 비활성화 시 특별한 작업 없음
 }
 register_deactivation_hook(__FILE__, 'kachi_query_system_deactivate');
 
