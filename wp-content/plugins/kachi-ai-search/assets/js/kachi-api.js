@@ -5,7 +5,6 @@
     window.KachiAPI = {
         // 초기화
         init: function() {
-            console.log("✅ Kachi API initializing...");
             this.fetchTagsAndDocs();
             this.loadMathJax();
         },
@@ -13,7 +12,6 @@
         // MathJax 로드 - 로컬 버전
         loadMathJax: function() {
             if (window.MathJax) {
-                console.log("✅ MathJax already loaded");
                 return;
             }
             
@@ -46,10 +44,8 @@
                 },
                 startup: {
                     ready: function() {
-                        console.log("✅ MathJax is ready!");
                         MathJax.startup.defaultReady();
                         MathJax.startup.promise.then(() => {
-                            console.log("✅ MathJax startup complete");
                         });
                     }
                 }
@@ -67,11 +63,9 @@
             };
             
             script.onload = function() {
-                console.log("✅ MathJax script loaded successfully from local");
             };
             
             document.head.appendChild(script);
-            console.log("✅ MathJax loading initiated from local path");
         },
         
         // 태그와 문서 목록 가져오기
@@ -87,7 +81,6 @@
                 success: (response) => {
                     if (response.success && response.data.tags) {
                         KachiCore.allTagList = response.data.tags;
-                        console.log("✅ Loaded tags:", KachiCore.allTagList);
                         if (KachiCore.allTagList.length > 0) {
                             KachiUI.renderTagOptions(KachiCore.allTagList);
                         } else {
@@ -114,12 +107,10 @@
                     nonce: window.kachi_ajax?.nonce
                 },
                 success: (response) => {
-                    console.log("🔍 Documents response:", response);
                     if (response.success && response.data.documents) {
                         KachiCore.allDocList = response.data.documents.map(doc => 
                             doc.filename || doc.file_id || "❓ unknown"
                         );
-                        console.log("✅ Parsed doc list:", KachiCore.allDocList);
                         
                         if (KachiCore.allDocList.length > 0) {
                             KachiUI.renderDocOptions(KachiCore.allDocList);
@@ -404,7 +395,6 @@
                             
                             // 스트림 종료 체크
                             if (text === "[DONE]") {
-                                console.log("✅ Stream completed");
                                 break;
                             }
                             
@@ -452,11 +442,6 @@
                     KachiCore.isCharStreaming = false;
                     KachiCore.displayedLength = 0;
                     
-                    console.log("🔍 Debug: Final flush with non-empty stream buffer:", {
-                        bufferLength: KachiCore.streamBuffer.length,
-                        bufferPreview: KachiCore.streamBuffer.substring(0, 200)
-                    });
-                    
                     this.tryFlushStreamBuffer(messageElement, true);
                 } else {
                     console.warn("⚠️ Warning: Stream buffer is empty at completion, using fallback content extraction");
@@ -466,10 +451,6 @@
                     if (textElement) {
                         const extractedContent = textElement.textContent || textElement.innerText || textElement.innerHTML;
                         if (extractedContent && extractedContent.trim()) {
-                            console.log("🔄 Extracted fallback content from DOM:", {
-                                contentLength: extractedContent.length,
-                                contentPreview: extractedContent.substring(0, 100)
-                            });
                             KachiCore.streamBuffer = extractedContent;
                         }
                     }
@@ -480,12 +461,6 @@
                 
                 // 스트리밍 완료 후 최종 메시지 업데이트 (개선된 버전)
                 let finalContent = this._captureStreamingContent(messageElement, messageId);
-                console.log("✅ Final streaming content captured:", {
-                    hasContent: !!finalContent,
-                    contentLength: finalContent ? finalContent.length : 0,
-                    contentPreview: finalContent ? finalContent.substring(0, 100) : 'NO FINAL CONTENT',
-                    messageId: messageId
-                });
                 
                 const message = KachiCore.findMessage(messageId);
                 if (message && finalContent) {
@@ -523,13 +498,11 @@
                     const $queryInput = $('#queryInput');
                     if ($queryInput.length && !$queryInput.is(':disabled')) {
                         $queryInput.focus();
-                        console.log("✅ Focus set to query input");
                     }
                 }, 100);
             } catch (err) {
                 const isAbort = err.name === 'AbortError';
                 if (isAbort) {
-                    console.log("✅ Stream stopped by user");
                     const textElement = messageElement.querySelector('.message-text');
                     if (textElement) {
                         const stoppedMsg = window.kachi_ajax?.strings?.stopped || "사용자에 의해 중지되었습니다.";
@@ -585,10 +558,6 @@
         
         // MathJax 렌더링된 내용 정리 (개선된 텍스트 보존)
         cleanMathJaxContent: function(html) {
-            console.log("🔍 Debug: cleanMathJaxContent input:", {
-                inputLength: html ? html.length : 0,
-                inputPreview: html ? html.substring(0, 100) : 'EMPTY INPUT'
-            });
             
             // 빈 내용이면 그대로 반환
             if (!html || html.trim() === '') {
@@ -614,7 +583,6 @@
                     // 요소를 제거하기 전에 텍스트 내용이 있는지 확인
                     const textContent = el.textContent || el.innerText;
                     if (textContent && textContent.trim()) {
-                        console.log("🔍 Debug: Preserving text from MathJax element:", textContent.substring(0, 50));
                         // 부모 요소에 텍스트 추가 (MathJax 렌더링 대신)
                         try {
                             const textNode = document.createTextNode(' ' + textContent + ' ');
@@ -675,13 +643,6 @@
                         return originalHtml;
                     }
                 }
-                
-                console.log("🔍 Debug: cleanMathJaxContent output:", {
-                    outputLength: result ? result.length : 0,
-                    outputPreview: result ? result.substring(0, 100) : 'EMPTY OUTPUT',
-                    textPreserved: textPreserved,
-                    textLossPercentage: originalLength > 0 ? Math.round((1 - finalLength / originalLength) * 100) + '%' : '0%'
-                });
                 
                 return result || originalHtml;
             } catch (error) {
@@ -785,7 +746,6 @@
             const nextChar = fullText[afterBlockPos];
             const isAtTagBoundary = nextChar === '<';
             
-            console.log('🔍 Block completion check - pos:', afterBlockPos, 'nextChar:', nextChar, 'complete:', isAtTagBoundary);
             return isAtTagBoundary;
         },
 
@@ -795,7 +755,6 @@
             // 줄 단위로 처리 (HTML 블록 추출 대신 라인 기반 처리)
             const lines = text.split('\n');
             
-            console.log('🔍 Detecting complete images in', lines.length, 'lines (real-time processing)');
             
             lines.forEach((line, lineIndex) => {
                 // 이미 img 태그가 있는 줄은 건너뛰기
@@ -804,7 +763,6 @@
                     return;
                 }
                 
-                console.log('✅ Processing line for real-time detection:', line);
                 
                 // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리
                 const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
@@ -832,7 +790,6 @@
                                 fullLine: line
                             });
                             processedImageUrls.add(originalImageUrl);
-                            console.log('✅ Added double URL for real-time processing');
                         } else {
                             console.log('⏭️ Skipping already processed double URL');
                         }
@@ -862,7 +819,6 @@
                             fullLine: line
                         });
                         processedImageUrls.add(originalImageUrl);
-                        console.log('✅ Added regular markdown image for real-time processing');
                     } else {
                         console.log('⏭️ Skipping already processed markdown image');
                     }
@@ -889,7 +845,6 @@
                             fullLine: line
                         });
                         processedImageUrls.add(originalImageUrl);
-                        console.log('✅ Added normal image for real-time processing');
                     } else {
                         console.log('⏭️ Skipping already processed normal image');
                     }
@@ -943,7 +898,6 @@
                 
                 console.log('🖼️ Line-based processed image:', originalUrl, 'type:', type);
                 console.log('🔄 Original line:', fullLine.substring(0, 100) + '...');
-                console.log('✅ Updated line:', updatedLine.substring(0, 100) + '...');
             });
             
             console.log('🖼️ Line-based image processing completed');
@@ -1068,304 +1022,97 @@
         },
         
         // 이미지를 보존하면서 나머지 포맷팅 수행 - 실시간 스트리밍용
-        formatResponsePreservingImages: function(text) {
-            // 입력 유효성 검사 및 성능 보호
-            if (!text || typeof text !== 'string') {
-                console.warn('🖼️ [DEBUG] Invalid input to formatResponsePreservingImages:', typeof text);
-                return text || '';
-            }
+        // 통합된 텍스트 포맷팅 함수
+        _formatTextContent: function(text, processImages = false) {
+            if (!text || typeof text !== 'string') return text || '';
             
-            // 과도한 로깅 방지 (짧은 텍스트는 간단히)
-            if (text.length < 50) {
-                console.log('🖼️ [DEBUG] Short input:', text);
-            } else {
-                console.log('🖼️ [DEBUG] formatResponsePreservingImages input length:', text.length, 'preview:', text.substring(0, 100) + '...');
-            }
-            
-            // 이미 처리된 이미지 태그를 임시로 보호
-            const imagePlaceholders = {};
+            let imagePlaceholders = {};
             let imageCounter = 0;
             
-            // 기존 이미지 태그 보호
-            text = text.replace(/<img[^>]*>/g, function(match) {
-                console.log('🖼️ [DEBUG] Protecting existing img tag:', match);
-                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
-                imagePlaceholders[placeholder] = match;
-                return placeholder;
-            });
-            
-            // 이미지 URL 패턴들을 마크다운 처리 전에 감지하여 보호
-            console.log('🖼️ [DEBUG] Starting URL pattern matching...');
-            
-            // scope 참조 저장
-            const self = this;
-            
-            // 1. 이중 URL 패턴: [http://...](http://...) - 단순화된 패턴
-            const simpleDoubleUrlPattern = /\[(https?:\/\/[^\]]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi;
-            const doubleUrlMatches = text.match(simpleDoubleUrlPattern);
-            console.log('🖼️ [DEBUG] Double URL pattern matches found:', doubleUrlMatches ? doubleUrlMatches.length : 0, doubleUrlMatches);
-            
-            text = text.replace(simpleDoubleUrlPattern, function(match, url1, ext1, url2, ext2) {
-                console.log('🖼️ [DEBUG] Double URL match found:', { match, url1, url2 });
-                // 두 URL이 같거나 유사한 경우 이미지로 처리
-                if (url1 === url2 || Math.abs(url1.length - url2.length) <= 3) {
-                    const finalUrl = url1.length >= url2.length ? url1 : url2;
-                    const proxyUrl = self.convertToProxyImageUrl(finalUrl);
-                    const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
-                    
+            // 이미지 처리 (선택적)
+            if (processImages) {
+                const self = this;
+                
+                // 기존 이미지 태그 보호
+                text = text.replace(/<img[^>]*>/g, function(match) {
+                    const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                    imagePlaceholders[placeholder] = match;
+                    return placeholder;
+                });
+                
+                // 이중 URL 패턴 처리
+                text = text.replace(/\[(https?:\/\/[^\]]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi, function(match, url1, ext1, url2, ext2) {
+                    if (url1 === url2 || Math.abs(url1.length - url2.length) <= 3) {
+                        const finalUrl = url1.length >= url2.length ? url1 : url2;
+                        const proxyUrl = self.convertToProxyImageUrl(finalUrl);
+                        const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                        const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                        imagePlaceholders[placeholder] = imgTag;
+                        return placeholder;
+                    }
+                    return match;
+                });
+                
+                // 마크다운 이미지 패턴 처리
+                text = text.replace(/!\[([^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi, function(match, alt, url, ext) {
+                    const proxyUrl = self.convertToProxyImageUrl(url);
+                    const imgTag = `<img src="${proxyUrl}" alt="${alt || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
                     const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                     imagePlaceholders[placeholder] = imgTag;
-                    console.log('🖼️ [DEBUG] Created double URL placeholder:', placeholder, 'for URL:', finalUrl);
                     return placeholder;
-                }
-                console.log('🖼️ [DEBUG] URLs not similar enough, keeping original:', match);
-                return match; // URL이 다른 경우 원래 텍스트 유지
-            });
-            
-            // 2. 일반 마크다운 이미지 패턴: ![alt](http://...) - 단순화된 패턴
-            const simpleMarkdownPattern = /!\[([^\]]*)\]\((https?:\/\/[^\)]+\.(jpg|jpeg|png|gif|webp|bmp|svg)[^\)]*)\)/gi;
-            const markdownMatches = text.match(simpleMarkdownPattern);
-            console.log('🖼️ [DEBUG] Markdown image pattern matches found:', markdownMatches ? markdownMatches.length : 0, markdownMatches);
-            
-            text = text.replace(simpleMarkdownPattern, function(match, alt, url, ext) {
-                console.log('🖼️ [DEBUG] Markdown image match found:', { match, alt, url });
-                const proxyUrl = self.convertToProxyImageUrl(url);
-                const imgTag = `<img src="${proxyUrl}" alt="${alt || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                });
                 
-                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
-                imagePlaceholders[placeholder] = imgTag;
-                console.log('🖼️ [DEBUG] Created markdown placeholder:', placeholder, 'for URL:', url);
-                return placeholder;
-            });
-            
-            // 3. 단순 URL 패턴 (독립된 줄에 있는 경우) - 단순화된 패턴
-            const simplePlainUrlPattern = /^\s*(https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|bmp|svg)\S*)\s*$/gmi;
-            const plainUrlMatches = text.match(simplePlainUrlPattern);
-            console.log('🖼️ [DEBUG] Plain URL pattern matches found:', plainUrlMatches ? plainUrlMatches.length : 0, plainUrlMatches);
-            
-            text = text.replace(simplePlainUrlPattern, function(match, url, ext) {
-                console.log('🖼️ [DEBUG] Plain URL match found:', { match, url });
-                const proxyUrl = self.convertToProxyImageUrl(url);
-                const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
-                
-                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
-                imagePlaceholders[placeholder] = imgTag;
-                console.log('🖼️ [DEBUG] Created plain URL placeholder:', placeholder, 'for URL:', url);
-                return placeholder;
-            });
-            
-            // 4. 폴백 패턴 - 확장자가 없거나 다른 이미지 URL 형태 (더 유연한 매칭)
-            console.log('🖼️ [DEBUG] Checking for fallback patterns...');
-            
-            // 이미지 서버 URL에서 확장자가 명확하지 않은 경우를 위한 폴백
-            const fallbackDoublePattern = /\[(https?:\/\/192\.168\.10\.101:8001\/[^\]]+)\]\((https?:\/\/192\.168\.10\.101:8001\/[^\)]+)\)/gi;
-            const fallbackMatches = text.match(fallbackDoublePattern);
-            console.log('🖼️ [DEBUG] Fallback pattern matches found:', fallbackMatches ? fallbackMatches.length : 0, fallbackMatches);
-            
-            text = text.replace(fallbackDoublePattern, function(match, url1, url2) {
-                console.log('🖼️ [DEBUG] Fallback match found:', { match, url1, url2 });
-                // 두 URL이 같거나 유사하고, 이미지 서버 URL인 경우
-                if ((url1 === url2 || Math.abs(url1.length - url2.length) <= 3) && 
-                    (url1.includes('/images/') || url2.includes('/images/'))) {
-                    const finalUrl = url1.length >= url2.length ? url1 : url2;
-                    const proxyUrl = self.convertToProxyImageUrl(finalUrl);
+                // 단순 URL 패턴 처리
+                text = text.replace(/^\s*(https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|bmp|svg)\S*)\s*$/gmi, function(match, url, ext) {
+                    const proxyUrl = self.convertToProxyImageUrl(url);
                     const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
-                    
                     const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                     imagePlaceholders[placeholder] = imgTag;
-                    console.log('🖼️ [DEBUG] Created fallback placeholder:', placeholder, 'for URL:', finalUrl);
                     return placeholder;
-                }
-                console.log('🖼️ [DEBUG] Fallback pattern did not match criteria, keeping original');
-                return match;
-            });
+                });
+            }
             
-            // 기존 포맷팅 로직 적용 (이미지 처리 제외)
-            const formatted = this.formatResponseWithoutImages(text);
-            
-            // 이미지 플레이스홀더를 원래 태그로 복원
-            console.log('🖼️ [DEBUG] Total placeholders created:', Object.keys(imagePlaceholders).length, imagePlaceholders);
-            let result = formatted;
-            Object.keys(imagePlaceholders).forEach(placeholder => {
-                const beforeLength = result.length;
-                result = result.replace(new RegExp(placeholder, 'g'), imagePlaceholders[placeholder]);
-                const afterLength = result.length;
-                console.log('🖼️ [DEBUG] Restored placeholder:', placeholder, 'length change:', afterLength - beforeLength);
-            });
-            
-            console.log('🖼️ [DEBUG] Final formatted output length:', result.length, 'first 200 chars:', result.substring(0, 200));
-            return result;
-        },
-        
-        // 답변 포맷팅 (이미지 처리 제외) - 스트리밍 중 사용
-        formatResponseWithoutImages: function(text) {
-            // plaintext와 html 코드 블록 문법 제거
+            // 기본 텍스트 포맷팅
             text = text.replace(/```plaintext\s*([\s\S]*?)```/g, '$1');
             text = text.replace(/```html\s*([\s\S]*?)```/g, '$1');
             
-            // LaTeX 수식 보호를 위한 플레이스홀더 처리
+            // LaTeX 수식 보호
             const mathPlaceholders = {};
             let mathCounter = 0;
-            
-            // 블록 수식 (\[...\]) 보호
             text = text.replace(/\\\[([\s\S]*?)\\\]/g, function(match, equation) {
                 const placeholder = `__MATH_BLOCK_${mathCounter++}__`;
                 mathPlaceholders[placeholder] = `<div class="math-block">\\[${equation}\\]</div>`;
                 return placeholder;
             });
-            
-            // 인라인 수식 (\(...\)) 보호
             text = text.replace(/\\\(([\s\S]*?)\\\)/g, function(match, equation) {
                 const placeholder = `__MATH_INLINE_${mathCounter++}__`;
                 mathPlaceholders[placeholder] = `<span class="math-inline">\\(${equation}\\)</span>`;
                 return placeholder;
             });
             
-            // 이미지 URL은 처리하지 않음 (스트리밍 중 깜빡임 방지)
-            
-            // --- 수평선을 <hr>로 변환 (독립된 줄에 있는 경우)
+            // 마크다운 포맷팅
             text = text.replace(/^---+$/gm, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">');
-            
-            // # 헤딩을 <h2>로 변환 (줄 시작에 있는 경우만)
             text = text.replace(/^#\s+(.+)$/gm, '<h2 style="margin-top: 28px; margin-bottom: 16px; color: #1a1a1a; font-size: 1.8em; font-weight: 700; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">$1</h2>');
-            
-            // ## 헤딩을 <h3>로 변환 (줄 시작에 있는 경우만)
             text = text.replace(/^##\s+(.+)$/gm, '<h3 style="margin-top: 24px; margin-bottom: 12px; color: #2d2d2d; font-size: 1.4em; font-weight: 600;">$1</h3>');
-            
-            // ### 헤딩을 <h4>로 변환 (줄 시작에 있는 경우만)
             text = text.replace(/^###\s+(.+)$/gm, '<h4 style="margin-top: 20px; margin-bottom: 10px; color: #333; font-size: 1.1em; font-weight: 600;">$1</h4>');
-            
-            // #### 헤딩을 <h5>로 변환 (줄 시작에 있는 경우만)
             text = text.replace(/^####\s+(.+)$/gm, '<h5 style="margin-top: 16px; margin-bottom: 8px; color: #333; font-size: 1em; font-weight: 600;">$1</h5>');
             
-            // `code` 패턴을 <code>code</code>로 변환 (백틱 처리 - 3단어 이하만)
             text = text.replace(/`([^`]+)`/g, function(match, code) {
-                // 공백으로 분리하여 단어 수 계산
                 const wordCount = code.trim().split(/\s+/).length;
-                
-                // 3단어 이하인 경우만 코드 스타일 적용
-                if (wordCount <= 3) {
-                    return '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 0.9em; color: #d73a49;">' + code + '</code>';
-                } else {
-                    // 3단어 초과인 경우 백틱을 그대로 유지
-                    return '`' + code + '`';
-                }
+                return wordCount <= 3 ? 
+                    '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 0.9em; color: #d73a49;">' + code + '</code>' :
+                    '`' + code + '`';
             });
             
-            // **text** 패턴을 <strong>text</strong>으로 변환
             text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-            
-            // *text* 패턴도 <strong>text</strong>으로 변환 (single asterisk)
             text = text.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<strong>$1</strong>');
             
-            // 숫자로 시작하는 리스트 항목 처리 - <br> 태그가 이미 없는 경우에만 추가
+            // 리스트 처리
             text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(\d{1,2}\.\s)/gm, '<br>$1');
-            
-            // 불릿 포인트 처리 - <br> 태그가 이미 없는 경우에만 추가
             text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n([-•▪]\s)/gm, '<br>$1');
-            
-            // ▶ 기호 처리 - <br> 태그가 이미 없는 경우에만 추가
             text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(▶\s)/gm, '<br>$1');
             
-            // 줄바꿈을 <br>로 변환
-            text = text.replace(/\n/g, '<br>');
-            
-            // 연속된 <br> 정리
-            text = text.replace(/(<br>){3,}/g, '<br><br>');
-            
-            // h2, h3, h4, h5 태그 주변의 불필요한 <br> 제거
-            text = text.replace(/<\/h([2345])>(<br>)+/g, '</h$1>');
-            text = text.replace(/(<br>)+<h([2345])/g, '<h$2');
-            
-            // hr 태그 주변의 불필요한 <br> 제거
-            text = text.replace(/<hr([^>]*)>(<br>)+/g, '<hr$1>');
-            text = text.replace(/(<br>)+<hr/g, '<hr');
-            
-            // 문서 시작 부분의 <br> 제거
-            text = text.replace(/^(<br>)+/, '');
-            
-            // 수식 플레이스홀더를 원래 수식으로 복원
-            Object.keys(mathPlaceholders).forEach(placeholder => {
-                text = text.replace(new RegExp(placeholder, 'g'), mathPlaceholders[placeholder]);
-            });
-            
-            return text;
-        },
-        
-        // 답변 포맷팅
-        formatResponse: function(text) {
-            console.log("Formatting text:", text.substring(0, 100) + "...");
-            
-            // plaintext와 html 코드 블록 문법 제거
-            text = text.replace(/```plaintext\s*([\s\S]*?)```/g, '$1');
-            text = text.replace(/```html\s*([\s\S]*?)```/g, '$1');
-            
-            // LaTeX 수식 보호를 위한 플레이스홀더 처리
-            const mathPlaceholders = {};
-            let mathCounter = 0;
-            
-            // 블록 수식 (\[...\]) 보호
-            text = text.replace(/\\\[([\s\S]*?)\\\]/g, function(match, equation) {
-                const placeholder = `__MATH_BLOCK_${mathCounter++}__`;
-                mathPlaceholders[placeholder] = `<div class="math-block">\\[${equation}\\]</div>`;
-                return placeholder;
-            });
-            
-            // 인라인 수식 (\(...\)) 보호
-            text = text.replace(/\\\(([\s\S]*?)\\\)/g, function(match, equation) {
-                const placeholder = `__MATH_INLINE_${mathCounter++}__`;
-                mathPlaceholders[placeholder] = `<span class="math-inline">\\(${equation}\\)</span>`;
-                return placeholder;
-            });
-            
-            // 이미지 URL 처리는 UI 렌더링 시에만 수행 (중복 처리 방지)
-            
-            // --- 수평선을 <hr>로 변환 (독립된 줄에 있는 경우)
-            text = text.replace(/^---+$/gm, '<hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">');
-            
-            // # 헤딩을 <h2>로 변환 (줄 시작에 있는 경우만)
-            text = text.replace(/^#\s+(.+)$/gm, '<h2 style="margin-top: 28px; margin-bottom: 16px; color: #1a1a1a; font-size: 1.8em; font-weight: 700; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">$1</h2>');
-            
-            // ## 헤딩을 <h3>로 변환 (줄 시작에 있는 경우만)
-            text = text.replace(/^##\s+(.+)$/gm, '<h3 style="margin-top: 24px; margin-bottom: 12px; color: #2d2d2d; font-size: 1.4em; font-weight: 600;">$1</h3>');
-            
-            // ### 헤딩을 <h4>로 변환 (줄 시작에 있는 경우만)
-            text = text.replace(/^###\s+(.+)$/gm, '<h4 style="margin-top: 20px; margin-bottom: 10px; color: #333; font-size: 1.1em; font-weight: 600;">$1</h4>');
-            
-            // #### 헤딩을 <h5>로 변환 (줄 시작에 있는 경우만)
-            text = text.replace(/^####\s+(.+)$/gm, '<h5 style="margin-top: 16px; margin-bottom: 8px; color: #333; font-size: 1em; font-weight: 600;">$1</h5>');
-            
-            // `code` 패턴을 <code>code</code>로 변환 (백틱 처리 - 3단어 이하만)
-            text = text.replace(/`([^`]+)`/g, function(match, code) {
-                // 공백으로 분리하여 단어 수 계산
-                const wordCount = code.trim().split(/\s+/).length;
-                
-                // 3단어 이하인 경우만 코드 스타일 적용
-                if (wordCount <= 3) {
-                    return '<code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; font-size: 0.9em; color: #d73a49;">' + code + '</code>';
-                } else {
-                    // 3단어 초과인 경우 백틱을 그대로 유지
-                    return '`' + code + '`';
-                }
-            });
-            
-            // **text** 패턴을 <strong>text</strong>으로 변환
-            text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-            
-            // *text* 패턴도 <strong>text</strong>으로 변환 (single asterisk)
-            text = text.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<strong>$1</strong>');
-            
-            // 숫자로 시작하는 리스트 항목 처리 - <br> 태그가 이미 없는 경우에만 추가
-            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(\d{1,2}\.\s)/gm, '<br>$1');
-            
-            // 불릿 포인트 처리 - <br> 태그가 이미 없는 경우에만 추가
-            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n([-•▪]\s)/gm, '<br>$1');
-            
-            // ▶ 기호 처리 - <br> 태그가 이미 없는 경우에만 추가
-            text = text.replace(/(?<!<br>)(?<!<br\/>)(?<!<br\s*\/>)\n(▶\s)/gm, '<br>$1');
-            
-            // 줄바꿈을 <br>로 변환 (테이블 내부는 제외)
-            // 테이블을 임시로 보호
+            // 테이블 보호 및 줄바꿈 처리
             const tablePlaceholders = {};
             let tableCounter = 0;
             text = text.replace(/<table[\s\S]*?<\/table>/gi, function(match) {
@@ -1374,7 +1121,6 @@
                 return placeholder;
             });
             
-            // 줄바꿈을 <br>로 변환
             text = text.replace(/\n/g, '<br>');
             
             // 테이블 복원
@@ -1382,34 +1128,42 @@
                 text = text.replace(placeholder, tablePlaceholders[placeholder]);
             });
             
-            // 연속된 <br> 정리
+            // HTML 정리
             text = text.replace(/(<br>){3,}/g, '<br><br>');
-            
-            // h2, h3, h4, h5 태그 주변의 불필요한 <br> 제거
             text = text.replace(/<\/h([2345])>(<br>)+/g, '</h$1>');
             text = text.replace(/(<br>)+<h([2345])/g, '<h$2');
-            
-            // hr 태그 주변의 불필요한 <br> 제거
             text = text.replace(/<hr([^>]*)>(<br>)+/g, '<hr$1>');
             text = text.replace(/(<br>)+<hr/g, '<hr');
-            
-            // 테이블 태그 주변의 불필요한 <br> 제거
             text = text.replace(/(<br>\s*)+(<table)/gi, '$2');
             text = text.replace(/(<\/table>)\s*(<br>\s*)+/gi, '$1');
-            
-            // 테이블 내부 요소들 주변의 <br> 제거
-            text = text.replace(/(<br>\s*)+(<tr|<td|<th|<thead|<tbody|<tfoot)/gi, '$2');
-            text = text.replace(/(<\/tr>|<\/td>|<\/th>|<\/thead>|<\/tbody>|<\/tfoot>)\s*(<br>\s*)+/gi, '$1');
-            
-            // 문서 시작 부분의 <br> 제거
             text = text.replace(/^(<br>)+/, '');
             
-            // 수식 플레이스홀더를 원래 수식으로 복원
+            // 수식 복원
             Object.keys(mathPlaceholders).forEach(placeholder => {
                 text = text.replace(new RegExp(placeholder, 'g'), mathPlaceholders[placeholder]);
             });
             
+            // 이미지 복원
+            if (processImages) {
+                Object.keys(imagePlaceholders).forEach(placeholder => {
+                    text = text.replace(new RegExp(placeholder, 'g'), imagePlaceholders[placeholder]);
+                });
+            }
+            
             return text;
+        },
+
+        formatResponsePreservingImages: function(text) {
+            return this._formatTextContent(text, true);
+        },
+        
+        // 답변 포맷팅 (이미지 처리 제외) - 스트리밍 중 사용
+        formatResponseWithoutImages: function(text) {
+            return this._formatTextContent(text, false);
+        },
+        
+        formatResponse: function(text) {
+            return this._formatTextContent(text, false);
         },
         
         // MathJax로 수식 렌더링
@@ -1423,7 +1177,6 @@
             // 이미 렌더링된 수식은 제외하고 새로운 수식만 렌더링
             window.MathJax.typesetClear([element]);
             window.MathJax.typesetPromise([element]).then(() => {
-                console.log("✅ MathJax rendering completed");
             }).catch((e) => {
                 console.error("❌ MathJax rendering error:", e);
             });
@@ -1689,7 +1442,6 @@
         
         // 향상된 스트리밍 콘텐츠 캡처 (다중 폴백 메커니즘)
         _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
-            console.log(`🔍 Capturing streaming content for message ${messageId} (partial: ${isPartial})`);
             
             // 메트릭 기록
             if (KachiCore.debug) {
@@ -1757,12 +1509,6 @@
                     );
                     
                     finalContent = bestStrategy.content;
-                    console.log(`✅ Content captured using ${bestStrategy.strategy}:`, {
-                        strategyCount: captureStrategies.length,
-                        selectedStrategy: bestStrategy.strategy,
-                        contentLength: bestStrategy.length,
-                        contentPreview: finalContent.substring(0, 100)
-                    });
                     
                     // 성공 메트릭 기록
                     if (KachiCore.debug) {
@@ -1832,11 +1578,6 @@
                     return fixedContent; // 이전 단계 결과 반환
                 }
                 
-                console.log('✅ Content processing completed successfully:', {
-                    finalLength: cleanedContent ? cleanedContent.length : 0,
-                    finalPreview: cleanedContent ? cleanedContent.substring(0, 100) : 'EMPTY'
-                });
-                
                 return cleanedContent || streamBuffer;
             } catch (error) {
                 console.error('❌ Error processing stream content:', error);
@@ -1884,12 +1625,6 @@
                 
                 return false;
             }
-            
-            console.log(`✅ ${stepName} validation passed:`, {
-                inputLength: inputLength,
-                outputLength: outputLength,
-                changePercent: inputLength > 0 ? Math.round((outputLength / inputLength) * 100) + '%' : 'N/A'
-            });
             
             return true;
         },
@@ -1965,10 +1700,6 @@
                     
                     if (hasValidContent && !isErrorMessage) {
                         KachiCore.debug.recordLLMResponseSaved();
-                        console.log('✅ LLM response successfully saved:', {
-                            messageId: message.id,
-                            contentLength: message.content.length
-                        });
                     } else {
                         KachiCore.debug.recordLLMResponseLost();
                         console.warn('⚠️ LLM response lost or invalid:', {
@@ -2050,21 +1781,15 @@
                     streamSnapshot.domContentLength = streamSnapshot.domContent.length;
                 }
                 
-                // 스냅샷 저장 (최대 10개만 보관)
+                // 스냅샷 저장 (최대 3개만 보관)
                 if (!KachiCore.contentBackups) KachiCore.contentBackups = [];
                 KachiCore.contentBackups.push(streamSnapshot);
-                if (KachiCore.contentBackups.length > 10) {
+                if (KachiCore.contentBackups.length > 3) {
                     KachiCore.contentBackups.shift(); // 오래된 것 제거
                 }
                 
                 // 최신 스냅샷 업데이트
                 KachiCore.lastContentSnapshot = streamSnapshot;
-                
-                console.log('📸 Content snapshot created:', {
-                    snapshotCount: KachiCore.contentBackups.length,
-                    bufferLength: streamSnapshot.bufferLength,
-                    domLength: streamSnapshot.domContentLength || 0
-                });
                 
             } catch (error) {
                 console.warn('⚠️ Failed to create content snapshot:', error);
