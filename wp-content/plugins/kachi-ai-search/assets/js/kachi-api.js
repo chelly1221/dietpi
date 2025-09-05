@@ -344,10 +344,6 @@
                 clearTimeout(KachiCore.typeTimer);
             }
             
-            // 콘텐츠 보존을 위한 백업 시스템 초기화
-            KachiCore.contentBackups = [];
-            KachiCore.lastContentSnapshot = '';
-            
             KachiCore.controller = new AbortController();
             $('#stopButton').show();
 
@@ -417,8 +413,6 @@
                                 this.tryFlushStreamBuffer(messageElement);
                                 KachiUI.scrollToBottom();
                                 
-                                // 콘텐츠 보존을 위한 주기적 스냅샷
-                                this._createContentSnapshot(messageElement, safeHTML);
 
                                 // 주기적으로 수식 렌더링 실행
                                 const currentTime = Date.now();
@@ -481,8 +475,6 @@
                     this._finalizeStreamingMessage(message);
                 } else {
                     console.error('❌ Failed to capture streaming content or find message');
-                    // 실패 시 폴백 시도
-                    this._handleStreamingFailure(messageElement, messageId);
                 }
                 
                 // 입력창에 포커스 주기
@@ -1340,117 +1332,19 @@
             return htmlStr;
         },
         
-        // 향상된 스트리밍 콘텐츠 캡처 (다중 폴백 메커니즘)
+        // 간소화된 스트리밍 콘텐츠 캡처 (스트림 버퍼만 사용)
         _captureStreamingContent: function(messageElement, messageId, isPartial = false) {
-            
-            // 메트릭 기록
-            if (KachiCore.debug) {
-                KachiCore.debug.recordCaptureAttempt();
-            }
-            
-            let finalContent = '';
-            const captureStrategies = [];
-            
             try {
-                // 전략 1: 스트림 버퍼 사용 (우선)
+                // 스트림 버퍼에서 콘텐츠 추출
                 if (KachiCore.streamBuffer && KachiCore.streamBuffer.trim()) {
-                    const bufferContent = this._processStreamContent(KachiCore.streamBuffer);
-                    if (bufferContent && bufferContent.trim()) {
-                        captureStrategies.push({
-                            strategy: 'stream_buffer',
-                            content: bufferContent,
-                            length: bufferContent.length
-                        });
-                    }
+                    return this._processStreamContent(KachiCore.streamBuffer);
                 }
                 
-                // 전략 2: DOM에서 텍스트 추출
-                const textElement = messageElement.querySelector('.message-text');
-                if (textElement) {
-                    const domContent = this._extractContent(textElement);
-                    if (domContent && domContent.trim()) {
-                        captureStrategies.push({
-                            strategy: 'dom_extraction',
-                            content: domContent,
-                            length: domContent.length
-                        });
-                    }
-                }
-                
-                // 전략 3: 전체 메시지 HTML 추출 (최후 수단)
-                const fullHTML = messageElement.innerHTML;
-                if (fullHTML && fullHTML.trim()) {
-                    const cleanedHTML = this._extractContent(fullHTML);
-                    if (cleanedHTML && cleanedHTML.trim()) {
-                        captureStrategies.push({
-                            strategy: 'full_html',
-                            content: cleanedHTML,
-                            length: cleanedHTML.length
-                        });
-                    }
-                }
-                
-                // 전략 4: 스냅샷 복구 (백업 수단)
-                if (isPartial || captureStrategies.length === 0) {
-                    const snapshotContent = this._recoverContentFromSnapshots();
-                    if (snapshotContent && snapshotContent.trim()) {
-                        captureStrategies.push({
-                            strategy: 'snapshot_recovery',
-                            content: snapshotContent,
-                            length: snapshotContent.length
-                        });
-                    }
-                }
-                
-                // 최적의 전략 선택 (가장 긴 콘텐츠)
-                if (captureStrategies.length > 0) {
-                    const bestStrategy = captureStrategies.reduce((prev, current) => 
-                        current.length > prev.length ? current : prev
-                    );
-                    
-                    finalContent = bestStrategy.content;
-                    
-                    // 성공 메트릭 기록
-                    if (KachiCore.debug) {
-                        KachiCore.debug.recordCaptureSuccess();
-                        
-                        // 전략별 메트릭 기록
-                        if (bestStrategy.strategy === 'stream_buffer') {
-                            KachiCore.debug.recordMetric('streamBufferSuccesses');
-                        } else if (bestStrategy.strategy === 'dom_extraction') {
-                            KachiCore.debug.recordMetric('domExtractionSuccesses');
-                        } else if (bestStrategy.strategy === 'snapshot_recovery') {
-                            KachiCore.debug.recordMetric('snapshotRecoveries');
-                        }
-                        
-                        // 복구 메트릭 기록 (fallback 전략 사용 시)
-                        if (bestStrategy.strategy !== 'stream_buffer') {
-                            KachiCore.debug.recordRecovery();
-                        }
-                    }
-                } else {
-                    console.warn('⚠️ No content capture strategies succeeded');
-                    finalContent = '';
-                    
-                    // 실패 및 콘텐츠 손실 메트릭 기록
-                    if (KachiCore.debug) {
-                        KachiCore.debug.recordCaptureFailure();
-                        KachiCore.debug.recordContentLoss();
-                    }
-                }
-                
+                return '';
             } catch (error) {
                 console.error('❌ Error during content capture:', error);
-                finalContent = '';
-                
-                // 오류 메트릭 기록
-                if (KachiCore.debug) {
-                    KachiCore.debug.recordCaptureFailure();
-                    KachiCore.debug.recordContentLoss();
-                }
+                return '';
             }
-            
-            return finalContent;
         },
         
         // 스트림 콘텐츠 처리 (강화된 검증 버전)
@@ -1550,113 +1444,6 @@
                 console.error('❌ Error finalizing streaming message:', error);
             }
         },
-        
-        // 스트리밍 실패 처리
-        _handleStreamingFailure: function(messageElement, messageId) {
-            console.warn('⚠️ Handling streaming failure for message:', messageId);
-            
-            try {
-                // 마지막 시도: DOM에서 어떤 콘텐츠든 추출
-                let fallbackContent = this._extractContent(
-                    messageElement.querySelector('.message-text')
-                ) || '❌ 콘텐츠를 불러올 수 없습니다.';
-                
-                const message = KachiCore.findMessage(messageId);
-                if (message) {
-                    // 폴백 콘텐츠에도 이미지 처리 적용
-                    if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay && fallbackContent !== '❌ 콘텐츠를 불러올 수 없습니다.') {
-                        fallbackContent = window.KachiAPI.processImageUrlsForDisplay(fallbackContent);
-                    }
-                    message.content = fallbackContent;
-                    
-                    this._finalizeStreamingMessage(message);
-                }
-            } catch (error) {
-                console.error('❌ Error in streaming failure handler:', error);
-            }
-        },
-        
-        // 콘텐츠 보존을 위한 스냅샷 생성
-        _createContentSnapshot: function(messageElement, newChunk) {
-            try {
-                // 너무 자주 스냅샷을 만들지 않도록 제한
-                const now = Date.now();
-                if (!this._lastSnapshotTime) this._lastSnapshotTime = now;
-                if (now - this._lastSnapshotTime < 2000) return; // 2초 간격
-                
-                this._lastSnapshotTime = now;
-                
-                // 현재 스트림 버퍼 스냅샷
-                const streamSnapshot = {
-                    timestamp: now,
-                    streamBuffer: KachiCore.streamBuffer || '',
-                    bufferLength: KachiCore.streamBuffer ? KachiCore.streamBuffer.length : 0
-                };
-                
-                // DOM 콘텐츠 스냅샷
-                const textElement = messageElement.querySelector('.message-text');
-                if (textElement) {
-                    streamSnapshot.domContent = textElement.innerHTML || '';
-                    streamSnapshot.domTextContent = textElement.textContent || textElement.innerText || '';
-                    streamSnapshot.domContentLength = streamSnapshot.domContent.length;
-                }
-                
-                // 스냅샷 저장 (최대 3개만 보관)
-                if (!KachiCore.contentBackups) KachiCore.contentBackups = [];
-                KachiCore.contentBackups.push(streamSnapshot);
-                if (KachiCore.contentBackups.length > 3) {
-                    KachiCore.contentBackups.shift(); // 오래된 것 제거
-                }
-                
-                // 최신 스냅샷 업데이트
-                KachiCore.lastContentSnapshot = streamSnapshot;
-                
-            } catch (error) {
-                console.warn('⚠️ Failed to create content snapshot:', error);
-            }
-        },
-        
-        // 스냅샷을 사용한 콘텐츠 복구
-        _recoverContentFromSnapshots: function() {
-            try {
-                if (!KachiCore.contentBackups || KachiCore.contentBackups.length === 0) {
-                    console.warn('⚠️ No content snapshots available for recovery');
-                    return '';
-                }
-                
-                // 가장 최신이면서 가장 긴 콘텐츠 찾기
-                let bestSnapshot = KachiCore.contentBackups.reduce((best, current) => {
-                    const currentLength = Math.max(
-                        current.bufferLength || 0, 
-                        current.domContentLength || 0
-                    );
-                    const bestLength = Math.max(
-                        best.bufferLength || 0, 
-                        best.domContentLength || 0
-                    );
-                    
-                    return currentLength > bestLength ? current : best;
-                });
-                
-                // 스트림 버퍼가 더 좋으면 그것을 사용, 아니면 DOM 콘텐츠 사용
-                let recoveredContent = '';
-                if (bestSnapshot.bufferLength > bestSnapshot.domContentLength) {
-                    recoveredContent = bestSnapshot.streamBuffer;
-                } else {
-                    recoveredContent = bestSnapshot.domTextContent;
-                }
-                
-                if (KachiCore.debug) {
-                    KachiCore.debug.recordRecovery();
-                }
-                
-                return recoveredContent || '';
-                
-            } catch (error) {
-                console.error('❌ Error recovering content from snapshots:', error);
-                return '';
-            }
-        }
     };
     
 })(window, document, jQuery);
