@@ -1198,6 +1198,14 @@
                 console.log("🧹 Removed trailing ']':", url);
             }
             
+            // HTML 태그 및 HTML 콘텐츠 제거 (이미지 URL 뒤에 HTML이 붙는 경우)
+            const htmlMatch = url.match(/^(https?:\/\/[^<>\s]+)/);
+            if (htmlMatch && htmlMatch[1] !== url) {
+                const cleanedUrl = htmlMatch[1];
+                console.log("🧹 Removed HTML content:", url, "->", cleanedUrl);
+                url = cleanedUrl;
+            }
+            
             return url;
         },
         
@@ -1216,19 +1224,24 @@
             // URL 정리 (마크다운 문법 제거)
             const cleanUrl = this.cleanImageUrl(imageUrl);
             
+            if (imageUrl !== cleanUrl) {
+                console.log('🧹 URL cleaned:', imageUrl, '->', cleanUrl);
+            }
+            
             // 정리된 URL이 유효한 http(s) URL인지 확인
             if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
                 console.warn("⚠️ Invalid URL after cleaning:", cleanUrl);
                 return imageUrl;
             }
             
-            // API 서버의 이미지 URL 패턴 확인
-            const apiPattern = /:8001\/images\/([^?\s)]+)/;
+            // API 서버의 이미지 URL 패턴 확인 (HTML 태그에서 중단)
+            const apiPattern = /:8001\/images\/([a-zA-Z0-9._-]+(?:\.[a-zA-Z]{2,5})?)/;
             const match = cleanUrl.match(apiPattern);
             
             if (match && match[1]) {
                 // 프록시 URL로 변환 (WordPress 사이트 URL 사용)
                 const imagePath = match[1];
+                console.log('🖼️ Extracted clean image path:', imagePath, 'from URL:', cleanUrl);
                 const proxyUrl = (window.kachi_ajax?.site_url || window.location.origin) + '/proxy-image?path=' + encodeURIComponent(imagePath);
                 return proxyUrl;
             }
