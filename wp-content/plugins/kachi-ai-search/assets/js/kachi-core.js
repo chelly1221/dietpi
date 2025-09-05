@@ -312,6 +312,15 @@
                     messages: JSON.stringify(conversation.messages)
                 };
                 
+                // 디버깅: AJAX 설정 확인
+                if (!window.kachi_ajax?.ajax_url) {
+                    console.error('❌ kachi_ajax.ajax_url not found - AJAX requests will fail');
+                    return Promise.reject('Missing AJAX URL');
+                }
+                if (!window.kachi_ajax?.nonce) {
+                    console.warn('⚠️ kachi_ajax.nonce not found - requests may fail authentication');
+                }
+                
                 // 데이터 크기 체크
                 const dataSize = JSON.stringify(ajaxData).length;
                 if (dataSize > 1048576) { // 1MB
@@ -552,6 +561,7 @@
                 updatedAt: new Date().toISOString()
             };
             
+            console.log('🆕 Creating new conversation:', conversationId);
             this.conversations.unshift(conversation);
             this.currentConversationId = conversationId;
             this.chatHistory = [];

@@ -1199,7 +1199,7 @@
         // 이미지 URL을 프록시 URL로 변환 - 마크다운 처리 개선
         convertToProxyImageUrl: function(imageUrl) {
             // 이미 프록시 URL인 경우 그대로 반환
-            if (imageUrl.includes('action=kachi_proxy_image')) {
+            if (imageUrl.includes('/proxy-image?path=') || imageUrl.includes('action=kachi_proxy_image')) {
                 return imageUrl;
             }
             
@@ -1235,7 +1235,7 @@
         
         // 이미지 URL 처리 함수 - 중복 URL 및 마크다운 링크 처리 개선
         processImageUrlsForDisplay: function(text) {
-            if ((text.includes('<img') && text.includes('action=kachi_proxy_image')) || 
+            if ((text.includes('<img') && (text.includes('/proxy-image?path=') || text.includes('action=kachi_proxy_image'))) || 
                 text.includes('/?action=kachi_proxy_image&url=')) {
                 return text;
             }
@@ -1291,7 +1291,7 @@
         // 이미지 태그 수정 (프록시 URL 적용) - 개선된 버전
         fixImgTags: function(htmlStr) {
             // 이미 프록시 URL로 처리된 이미지가 있는지 확인
-            if (htmlStr.includes('action=kachi_proxy_image')) {
+            if (htmlStr.includes('/proxy-image?path=') || htmlStr.includes('action=kachi_proxy_image')) {
                 return htmlStr;
             }
             
@@ -1315,7 +1315,7 @@
             const self = this;
             htmlStr = htmlStr.replace(/<img\s+([^>]*?)src="([^"]+)"([^>]*?)>/g, function(match, before, src, after) {
                 // 이미 프록시 URL이거나 데이터 URL이면 건너뛰기
-                if (src.includes('action=kachi_proxy_image') || src.startsWith('data:')) {
+                if (src.includes('/proxy-image?path=') || src.includes('action=kachi_proxy_image') || src.startsWith('data:')) {
                     return match;
                 }
                 
