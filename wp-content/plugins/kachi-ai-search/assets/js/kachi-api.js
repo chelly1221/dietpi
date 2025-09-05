@@ -1,4 +1,4 @@
-// 까치 쿼리 시스템 - API 통신 및 데이터 처리 (프록시 버전)
+// 까치 쿼리 시스템 API
 (function(window, document, $) {
     'use strict';
     
@@ -9,7 +9,7 @@
             this.loadMathJax();
         },
         
-        // MathJax 로드 - 로컬 버전
+        // MathJax 로드
         loadMathJax: function() {
             if (window.MathJax) {
                 return;
@@ -51,7 +51,7 @@
                 }
             };
             
-            // MathJax 스크립트 로드 - 로컬 경로 사용
+            // MathJax 스크립트 로드
             const script = document.createElement('script');
             script.src = window.kachi_ajax.plugin_url + 'assets/js/mathjax/es5/tex-mml-chtml.js';
             script.async = true;
@@ -166,7 +166,7 @@
             // 변형된 쿼리가 있는지 확인
             const isModified = userQuery !== userQueryOriginal;
             
-            // 사용자 메시지 추가 (원본과 변형된 쿼리 모두 표시) - 체크 마크 SVG 사용
+            // 사용자 메시지 추가
             let messageContent = KachiCore.escapeHtml(userQueryOriginal);
             if (isModified) {
                 messageContent += `<div class="modified-query-divider"></div>`;
@@ -289,7 +289,7 @@
             return userQuery;
         },
         
-        // 스트리밍 쿼리 처리 - 프록시 방식
+        // 스트리밍 쿼리 처리
         handleStreamingQuery: async function(userQuery) {
             // 편집 모드가 활성화되어 있으면 대기
             if (KachiCore.editingMessageId) {
@@ -467,7 +467,6 @@
                     // 업데이트된 콘텐츠를 메시지에 저장하기 전에 이미지 처리
                     if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
                         finalContent = window.KachiAPI.processImageUrlsForDisplay(finalContent);
-                        console.log("🖼️ Processed images in captured content before storage");
                     }
                     message.content = finalContent;
                     
@@ -477,13 +476,6 @@
                         message.referencedDocs = referencedDocs.outerHTML;
                         console.log('📄 Referenced docs captured for message');
                     }
-                    
-                    console.log("💾 Message content saved:", {
-                        messageId: message.id,
-                        hasContent: !!message.content,
-                        contentLength: message.content ? message.content.length : 0,
-                        hasReferencedDocs: !!message.referencedDocs
-                    });
                     
                     // 상태 전파 및 저장 (디바운싱 적용)
                     this._finalizeStreamingMessage(message);
@@ -520,7 +512,6 @@
                             // 부분 콘텐츠에도 이미지 처리 적용
                             if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay) {
                                 partialContent = window.KachiAPI.processImageUrlsForDisplay(partialContent);
-                                console.log("🖼️ Processed images in partial content before storage");
                             }
                             message.content = partialContent;
                             
@@ -530,7 +521,6 @@
                                 message.referencedDocs = referencedDocs.outerHTML;
                             }
                             
-                            console.log('💾 Partial content saved after stop');
                             
                             // 부분 콘텐츠 저장
                             this._finalizeStreamingMessage(message);
@@ -651,7 +641,7 @@
             }
         },
         
-        // 쿼리 문서 정보 가져오기 - 프록시 방식
+        // 쿼리 문서 정보 가져오기
         fetchQueryDocuments: async function(userQuery, messageElement) {
             try {
                 const response = await $.ajax({
@@ -706,8 +696,8 @@
             return html;
         },
         
-        // 완성된 이미지 URL 감지 및 추출 - 수정된 패턴
-        // 텍스트 블록 추출 함수 - HTML 태그 사이의 콘텐츠 추출
+        // 완성된 이미지 URL 감지
+        // 텍스트 블록 추출
         extractTextBlocks: function(html) {
             const blocks = [];
             // HTML 태그 사이의 텍스트 콘텐츠를 추출 (태그 자체는 제외)
@@ -732,7 +722,7 @@
             return blocks;
         },
         
-        // 텍스트 블록 완성도 검사 - 스트리밍 중 완전한 블록인지 확인
+        // 텍스트 블록 완성도 검사
         isTextBlockComplete: function(block, fullText) {
             // 블록이 HTML 태그 경계에서 끝나거나 스트림 끝에 있는지 확인
             const afterBlockPos = block.endPos + 1;
@@ -764,7 +754,7 @@
                 }
                 
                 
-                // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리
+                // 이중 URL 패턴: [URL](URL)
                 const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
                 const doubleUrlMatch = line.match(doubleUrlPattern);
                 
@@ -775,8 +765,6 @@
                     // 두 URL이 동일한지 확인 (진정한 이중 URL인지 검증)
                     if (urlInBrackets === urlInParentheses) {
                         let originalImageUrl = urlInParentheses;
-                        console.log('🔄 DOUBLE URL detected in real-time (priority 1):', line);
-                        console.log('🖼️ Processing double URL:', originalImageUrl);
                         
                         originalImageUrl = this.cleanImageUrl(originalImageUrl);
                         console.log('🧹 Cleaned double URL:', originalImageUrl);
@@ -799,13 +787,12 @@
                     }
                 }
                 
-                // 우선순위 2: 일반 마크다운 패턴 [text](URL) - 이중 URL이 아닌 경우만
+                // 마크다운 패턴: [text](URL)
                 const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
                 const markdownMatch = line.match(markdownImagePattern);
                 
                 if (markdownMatch) {
                     let originalImageUrl = markdownMatch[1];
-                    console.log('🖼️ Found regular markdown URL in real-time (priority 2):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     console.log('🧹 Cleaned markdown URL:', originalImageUrl);
@@ -825,13 +812,12 @@
                     return;
                 }
                 
-                // 우선순위 3: 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 마크다운이 아닌 경우만
+                // 일반 URL 패턴
                 const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s\)\]]+/;
                 const normalMatch = line.match(normalImagePattern);
                 
                 if (normalMatch) {
                     let originalImageUrl = normalMatch[0];
-                    console.log('🖼️ Found plain URL in real-time (priority 3):', originalImageUrl);
                     
                     originalImageUrl = this.cleanImageUrl(originalImageUrl);
                     console.log('🧹 Cleaned URL:', originalImageUrl);
@@ -851,11 +837,10 @@
                 }
             });
             
-            console.log('🖼️ Total complete images detected:', completeImages.length);
             return completeImages;
         },
         
-        // 실시간 이미지 처리 - 완성된 이미지만 처리, 라인 기반 구조 보존
+        // 실시간 이미지 처리
         processImagesRealtime: function(text, processedImageUrls) {
             const completeImages = this.detectCompleteImages(text, processedImageUrls);
             
@@ -863,7 +848,6 @@
                 return { processedText: text }; // 새로운 완성된 이미지가 없으면 원본 반환
             }
             
-            console.log('🖼️ Found', completeImages.length, 'new complete images for line-based processing');
             
             let processedText = text;
             
@@ -896,16 +880,13 @@
                 // 전체 텍스트에서 원본 라인을 업데이트된 라인으로 교체
                 processedText = processedText.replace(fullLine, updatedLine);
                 
-                console.log('🖼️ Line-based processed image:', originalUrl, 'type:', type);
-                console.log('🔄 Original line:', fullLine.substring(0, 100) + '...');
             });
             
-            console.log('🖼️ Line-based image processing completed');
             
             return { processedText };
         },
 
-        // 스트림 버퍼 플러시 - 실시간 이미지 렌더링 개선
+        // 스트림 버퍼 플러시
         tryFlushStreamBuffer: function(messageElement, isFinal = false) {
             // messageElement가 유효한지 확인
             if (!messageElement || !messageElement.querySelector) {
@@ -952,7 +933,7 @@
                 // 수식 감지를 위한 변수
                 let mathDetected = false;
                 
-                // 타이핑 효과를 위한 함수 - 실시간 이미지 처리 포함
+                // 타이핑 효과
                 const typeNextChars = () => {
                     if (KachiCore.displayedLength < KachiCore.streamBuffer.length) {
                         // 한 번에 표시할 글자 수 (한글은 1글자, 영문은 2-3글자)
@@ -1227,7 +1208,6 @@
         convertToProxyImageUrl: function(imageUrl) {
             // 이미 프록시 URL인 경우 그대로 반환
             if (imageUrl.includes('action=kachi_proxy_image')) {
-                console.log("🖼️ Already proxy URL, skipping conversion:", imageUrl);
                 return imageUrl;
             }
             
@@ -1254,7 +1234,6 @@
                 const imagePath = match[1];
                 const proxyUrl = window.kachi_ajax?.ajax_url + 
                     '?action=kachi_proxy_image&path=' + encodeURIComponent(imagePath);
-                console.log("🖼️ Converting to proxy URL:", cleanUrl, "->", proxyUrl);
                 return proxyUrl;
             }
             
@@ -1265,134 +1244,56 @@
         
         // 이미지 URL 처리 함수 - 중복 URL 및 마크다운 링크 처리 개선
         processImageUrlsForDisplay: function(text) {
-            // 이미 처리된 이미지는 다시 처리하지 않음 (더 강화된 검사)
-            if (text.includes('<img') && text.includes('action=kachi_proxy_image')) {
-                console.log("🖼️ Images already processed for display, skipping");
+            if ((text.includes('<img') && text.includes('action=kachi_proxy_image')) || 
+                text.includes('/?action=kachi_proxy_image&url=')) {
                 return text;
             }
             
-            // 프록시 URL이 이미 있는지 추가 확인
-            if (text.includes('/?action=kachi_proxy_image&url=')) {
-                console.log("🖼️ Proxy URLs already present, skipping processing");
-                return text;
-            }
-            
-            // 줄 단위로 처리
             const lines = text.split('\n');
-            const processedLines = [];
-            const processedUrls = new Set(); // 이미 처리된 URL 추적
+            const processedUrls = new Set();
             
-            lines.forEach(line => {
-                // 이미 img 태그가 있는 줄은 건너뛰기
-                if (line.includes('<img')) {
-                    processedLines.push(line);
-                    return;
+            return lines.map(line => {
+                if (line.includes('<img')) return line;
+                return this._processImageLine(line, processedUrls);
+            }).join('\n');
+        },
+        
+        // 단일 라인의 이미지 URL 처리
+        _processImageLine: function(line, processedUrls) {
+            const patterns = [
+                // 이중 URL 패턴: [URL](URL)
+                {
+                    regex: /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/,
+                    extract: (match) => match[1] === match[2] ? match[1] : null
+                },
+                // 마크다운 패턴: [text](URL)
+                {
+                    regex: /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/,
+                    extract: (match) => match[1]
+                },
+                // 단순 URL 패턴
+                {
+                    regex: /https?:\/\/[^:\s]+:8001\/images\/[^\s)\]]+/,
+                    extract: (match) => match[0]
                 }
-                
-                // 우선순위 1: 이중 URL 패턴 전용 검사 [URL](URL) - 완전한 패턴만 처리 (display processing)
-                const doubleUrlPattern = /\[(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
-                const doubleUrlMatch = line.match(doubleUrlPattern);
-                
-                if (doubleUrlMatch) {
-                    const urlInBrackets = doubleUrlMatch[1];
-                    const urlInParentheses = doubleUrlMatch[2];
-                    
-                    // 두 URL이 동일한지 확인 (진정한 이중 URL인지 검증)
-                    if (urlInBrackets === urlInParentheses) {
-                        let originalImageUrl = urlInParentheses;
-                        console.log("🔄 DOUBLE URL detected in display processing (priority 1):", line);
-                        console.log("🖼️ Processing double URL for display:", originalImageUrl);
-                        
-                        // URL 정리 (끝의 ']' 문자 제거 등)
-                        originalImageUrl = this.cleanImageUrl(originalImageUrl);
-                        
-                        // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
-                        if (processedUrls.has(originalImageUrl)) {
-                            console.log("🔄 Double URL already processed in display block, skipping:", originalImageUrl);
-                            processedLines.push(line); // 원본 줄 유지
-                            return;
+            ];
+            
+            for (let pattern of patterns) {
+                const match = line.match(pattern.regex);
+                if (match) {
+                    const url = pattern.extract(match);
+                    if (url) {
+                        const cleanUrl = this.cleanImageUrl(url);
+                        if (!processedUrls.has(cleanUrl)) {
+                            processedUrls.add(cleanUrl);
+                            const proxyUrl = this.convertToProxyImageUrl(cleanUrl);
+                            const imgTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${cleanUrl}">`;
+                            return imgTag;
                         }
-                        
-                        // 처리된 URL로 표시
-                        processedUrls.add(originalImageUrl);
-                        
-                        // 프록시 URL로 변환
-                        const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
-                        
-                        // 전체 줄을 이미지 태그로 교체
-                        const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
-                        processedLines.push(imageTag);
-                        return;
-                    } else {
-                        console.log("⚠️ URL mismatch in double pattern, treating as regular markdown");
                     }
                 }
-                
-                // 우선순위 2: 일반 마크다운 패턴 [text](URL) - 이중 URL이 아닌 경우만 (display processing)
-                const markdownImagePattern = /.*\]\((https?:\/\/[^)]*:8001\/images\/[^)]+)\)/;
-                const markdownMatch = line.match(markdownImagePattern);
-                
-                if (markdownMatch) {
-                    let originalImageUrl = markdownMatch[1];
-                    console.log("🖼️ Found regular markdown URL in display processing (priority 2):", originalImageUrl);
-                    
-                    // URL 정리 (끝의 ']' 문자 제거 등)
-                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
-                    
-                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
-                    if (processedUrls.has(originalImageUrl)) {
-                        console.log("🔄 Regular markdown URL already processed in display block, skipping:", originalImageUrl);
-                        processedLines.push(line); // 원본 줄 유지
-                        return;
-                    }
-                    
-                    // 처리된 URL로 표시
-                    processedUrls.add(originalImageUrl);
-                    
-                    // 프록시 URL로 변환
-                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
-                    
-                    // 전체 줄을 이미지 태그로 교체
-                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
-                    processedLines.push(imageTag);
-                    return;
-                }
-                
-                // 우선순위 3: 일반적인 이미지 URL 패턴 (http://host:8001/images/file) - 마크다운이 아닌 경우만 (display processing)
-                const normalImagePattern = /https?:\/\/[^:\s]+:8001\/images\/[^\s)\]]+/;
-                const normalMatch = line.match(normalImagePattern);
-                
-                if (normalMatch) {
-                    let originalImageUrl = normalMatch[0];
-                    console.log("🖼️ Found plain URL in display processing (priority 3):", originalImageUrl);
-                    
-                    // URL 정리 (끝의 ']' 문자 제거 등)
-                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
-                    
-                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
-                    if (processedUrls.has(originalImageUrl)) {
-                        console.log("🔄 URL already processed in this block, skipping:", originalImageUrl);
-                        processedLines.push(line); // 원본 줄 유지
-                        return;
-                    }
-                    
-                    // 처리된 URL로 표시
-                    processedUrls.add(originalImageUrl);
-                    
-                    // 프록시 URL로 변환
-                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
-                    
-                    // 전체 줄을 이미지 태그로 교체
-                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
-                    processedLines.push(imageTag);
-                    return;
-                }
-                
-                // 이미지 URL이 없으면 원래 줄 그대로 유지
-                processedLines.push(line);
-            });
-            
-            return processedLines.join('\n');
+            }
+            return line;
         },
 
         
@@ -1400,7 +1301,6 @@
         fixImgTags: function(htmlStr) {
             // 이미 프록시 URL로 처리된 이미지가 있는지 확인
             if (htmlStr.includes('action=kachi_proxy_image')) {
-                console.log("🖼️ Image tags already processed with proxy URLs, skipping fixImgTags");
                 return htmlStr;
             }
             
@@ -1467,7 +1367,7 @@
                 // 전략 2: DOM에서 텍스트 추출
                 const textElement = messageElement.querySelector('.message-text');
                 if (textElement) {
-                    const domContent = this._extractContentFromDOM(textElement);
+                    const domContent = this._extractContent(textElement);
                     if (domContent && domContent.trim()) {
                         captureStrategies.push({
                             strategy: 'dom_extraction',
@@ -1480,7 +1380,7 @@
                 // 전략 3: 전체 메시지 HTML 추출 (최후 수단)
                 const fullHTML = messageElement.innerHTML;
                 if (fullHTML && fullHTML.trim()) {
-                    const cleanedHTML = this._extractContentFromFullHTML(fullHTML);
+                    const cleanedHTML = this._extractContent(fullHTML);
                     if (cleanedHTML && cleanedHTML.trim()) {
                         captureStrategies.push({
                             strategy: 'full_html',
@@ -1561,21 +1461,18 @@
                     return '';
                 }
                 
-                console.log('🔄 Starting content processing pipeline:', {
-                    originalLength: streamBuffer.length,
-                    originalPreview: streamBuffer.substring(0, 100)
-                });
-                
                 // 1. 이미지 태그 수정
                 const fixedContent = this.fixImgTags(streamBuffer);
-                if (!this._validateProcessingStep('fixImgTags', streamBuffer, fixedContent)) {
-                    return streamBuffer; // 실패 시 원본 반환
+                if (!fixedContent || (streamBuffer.length > 50 && fixedContent.length < streamBuffer.length * 0.1)) {
+                    console.warn('⚠️ Content loss in fixImgTags, using original');
+                    return streamBuffer;
                 }
                 
                 // 2. MathJax 콘텐츠 정리
                 const cleanedContent = this.cleanMathJaxContent(fixedContent);
-                if (!this._validateProcessingStep('cleanMathJaxContent', fixedContent, cleanedContent)) {
-                    return fixedContent; // 이전 단계 결과 반환
+                if (!cleanedContent || (fixedContent.length > 50 && cleanedContent.length < fixedContent.length * 0.1)) {
+                    console.warn('⚠️ Content loss in cleanMathJaxContent, using previous step');
+                    return fixedContent;
                 }
                 
                 return cleanedContent || streamBuffer;
@@ -1585,97 +1482,31 @@
             }
         },
         
-        // 처리 단계 검증
-        _validateProcessingStep: function(stepName, input, output) {
-            const inputLength = input ? input.length : 0;
-            const outputLength = output ? output.length : 0;
-            
-            // 출력이 입력보다 90% 이상 짧아진 경우 의심스러움
-            const significantLoss = inputLength > 50 && outputLength < (inputLength * 0.1);
-            
-            if (significantLoss) {
-                console.warn(`⚠️ Significant content loss detected in ${stepName}:`, {
-                    inputLength: inputLength,
-                    outputLength: outputLength,
-                    lossPercentage: Math.round((1 - outputLength / inputLength) * 100) + '%',
-                    inputPreview: input ? input.substring(0, 100) : 'EMPTY',
-                    outputPreview: output ? output.substring(0, 100) : 'EMPTY'
-                });
-                
-                // 메트릭 기록
-                if (KachiCore.debug) {
-                    KachiCore.debug.recordContentLoss();
-                    KachiCore.debug.recordProcessingStepFailure();
-                }
-                
-                return false;
-            }
-            
-            // 출력이 완전히 비어있는 경우도 문제
-            if (inputLength > 0 && (!output || !output.trim())) {
-                console.warn(`⚠️ Content completely lost in ${stepName}:`, {
-                    inputLength: inputLength,
-                    inputPreview: input ? input.substring(0, 100) : 'EMPTY'
-                });
-                
-                if (KachiCore.debug) {
-                    KachiCore.debug.recordContentLoss();
-                    KachiCore.debug.recordProcessingStepFailure();
-                }
-                
-                return false;
-            }
-            
-            return true;
-        },
-        
-        // DOM에서 콘텐츠 추출
-        _extractContentFromDOM: function(textElement) {
+        // 통합된 콘텐츠 추출 함수
+        _extractContent: function(source) {
             try {
+                let element;
+                
+                // source가 문자열이면 HTML로 파싱, 아니면 DOM 요소로 사용
+                if (typeof source === 'string') {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = source;
+                    element = tempDiv.querySelector('.message-text') || tempDiv;
+                } else {
+                    element = source;
+                }
+                
                 // innerHTML 우선 시도
-                let content = textElement.innerHTML;
+                let content = element.innerHTML;
                 if (content && content.trim()) {
                     return this._processStreamContent(content);
                 }
                 
                 // textContent 시도
-                content = textElement.textContent || textElement.innerText;
-                if (content && content.trim()) {
-                    return content;
-                }
-                
-                return '';
+                content = element.textContent || element.innerText;
+                return content && content.trim() ? content : '';
             } catch (error) {
-                console.error('❌ Error extracting content from DOM:', error);
-                return '';
-            }
-        },
-        
-        // 전체 HTML에서 콘텐츠 추출
-        _extractContentFromFullHTML: function(fullHTML) {
-            try {
-                // 임시 DOM 요소 생성
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = fullHTML;
-                
-                // .message-text 요소 찾기
-                const messageText = tempDiv.querySelector('.message-text');
-                if (messageText) {
-                    const content = messageText.innerHTML;
-                    if (content && content.trim()) {
-                        return this._processStreamContent(content);
-                    }
-                }
-                
-                // 전체 텍스트 추출 시도
-                const textContent = tempDiv.textContent || tempDiv.innerText;
-                if (textContent && textContent.trim()) {
-                    return textContent;
-                }
-                
-                return '';
-            } catch (error) {
-                console.error('❌ Error extracting content from full HTML:', error);
+                console.error('❌ Error extracting content:', error);
                 return '';
             }
         },
@@ -1683,11 +1514,6 @@
         // 스트리밍 메시지 최종 처리
         _finalizeStreamingMessage: function(message) {
             try {
-                console.log('📦 Finalizing streaming message:', {
-                    messageId: message.id,
-                    hasContent: !!message.content,
-                    contentLength: message.content ? message.content.length : 0
-                });
                 
                 // LLM 응답 저장 성공 여부 메트릭 기록
                 if (KachiCore.debug && message.role === 'assistant') {
@@ -1712,7 +1538,6 @@
                 
                 // 대화 업데이트 (디바운싱 적용)
                 setTimeout(() => {
-                    console.log('💾 Updating conversation after streaming completion...');
                     KachiCore.updateCurrentConversation({ skipSave: false });
                     
                     // UI 업데이트
@@ -1732,7 +1557,7 @@
             
             try {
                 // 마지막 시도: DOM에서 어떤 콘텐츠든 추출
-                let fallbackContent = this._extractContentFromDOM(
+                let fallbackContent = this._extractContent(
                     messageElement.querySelector('.message-text')
                 ) || '❌ 콘텐츠를 불러올 수 없습니다.';
                 
@@ -1741,13 +1566,8 @@
                     // 폴백 콘텐츠에도 이미지 처리 적용
                     if (window.KachiAPI && window.KachiAPI.processImageUrlsForDisplay && fallbackContent !== '❌ 콘텐츠를 불러올 수 없습니다.') {
                         fallbackContent = window.KachiAPI.processImageUrlsForDisplay(fallbackContent);
-                        console.log("🖼️ Processed images in fallback content before storage");
                     }
                     message.content = fallbackContent;
-                    console.log('🔄 Fallback content saved:', {
-                        messageId: message.id,
-                        contentLength: fallbackContent.length
-                    });
                     
                     this._finalizeStreamingMessage(message);
                 }
@@ -1822,10 +1642,8 @@
                 let recoveredContent = '';
                 if (bestSnapshot.bufferLength > bestSnapshot.domContentLength) {
                     recoveredContent = bestSnapshot.streamBuffer;
-                    console.log('🔄 Recovered content from stream buffer snapshot');
                 } else {
                     recoveredContent = bestSnapshot.domTextContent;
-                    console.log('🔄 Recovered content from DOM snapshot');
                 }
                 
                 if (KachiCore.debug) {
