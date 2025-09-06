@@ -920,6 +920,34 @@
                         console.log('⏭️ Skipping already processed URL label image');
                     }
                 }
+                
+                // 우선순위 5: 참조형 마크다운 패턴 - [text]: http://host:8001/images/file 형식
+                const referenceMarkdownPattern = /- \[([^\]]+)\]:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\s]+)/;
+                const referenceMarkdownMatch = line.match(referenceMarkdownPattern);
+                
+                if (referenceMarkdownMatch) {
+                    let originalImageUrl = referenceMarkdownMatch[2];
+                    const linkText = referenceMarkdownMatch[1];
+                    console.log('🖼️ Found reference markdown format in real-time (priority 5):', originalImageUrl);
+                    
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    console.log('🧹 Cleaned reference markdown URL:', originalImageUrl);
+                    
+                    // 이미 처리된 이미지가 아닌 경우에만 추가
+                    if (!processedImageUrls.has(originalImageUrl)) {
+                        completeImages.push({
+                            lineIndex: lineIndex,
+                            originalUrl: originalImageUrl,
+                            type: 'reference-markdown',
+                            fullLine: line,
+                            linkText: linkText
+                        });
+                        processedImageUrls.add(originalImageUrl);
+                        console.log('✅ Added reference markdown image for real-time processing');
+                    } else {
+                        console.log('⏭️ Skipping already processed reference markdown image');
+                    }
+                }
             });
             
             console.log('🖼️ Total complete images detected:', completeImages.length);
@@ -962,6 +990,11 @@
                     // URL 레이블 패턴 교체 - [URL: http://...] 형식
                     const urlLabelPattern = new RegExp(`- \\[URL:\\s*${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'g');
                     updatedLine = fullLine.replace(urlLabelPattern, imageTag);
+                } else if (type === 'reference-markdown') {
+                    // 참조형 마크다운 패턴 교체 - [text]: http://... 형식
+                    const linkText = imageInfo.linkText || '';
+                    const referencePattern = new RegExp(`- \\[${linkText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]:\\s*${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+                    updatedLine = fullLine.replace(referencePattern, imageTag);
                 } else {
                     // 일반 URL 패턴 교체
                     const plainUrlPattern = new RegExp(originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
@@ -1239,6 +1272,22 @@
                 const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
                 imagePlaceholders[placeholder] = imgTag;
                 console.log('🖼️ [DEBUG] Created URL label placeholder:', placeholder, 'for URL:', url);
+                return placeholder;
+            });
+            
+            // 6. 참조형 마크다운 패턴 - [text]: http://... 형식
+            const referenceMarkdownPattern = /- \[([^\]]+)\]:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\s]+)/gi;
+            const referenceMarkdownMatches = text.match(referenceMarkdownPattern);
+            console.log('🖼️ [DEBUG] Reference markdown pattern matches found:', referenceMarkdownMatches ? referenceMarkdownMatches.length : 0, referenceMarkdownMatches);
+            
+            text = text.replace(referenceMarkdownPattern, function(match, linkText, url) {
+                console.log('🖼️ [DEBUG] Reference markdown match found:', { match, linkText, url });
+                const proxyUrl = self.convertToProxyImageUrl(url);
+                const imgTag = `<img src="${proxyUrl}" alt="${linkText || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = imgTag;
+                console.log('🖼️ [DEBUG] Created reference markdown placeholder:', placeholder, 'for URL:', url);
                 return placeholder;
             });
             
@@ -1723,6 +1772,37 @@
                     
                     // 전체 줄을 이미지 태그로 교체
                     const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
+                    processedLines.push(imageTag);
+                    return;
+                }
+                
+                // 우선순위 5: 참조형 마크다운 패턴 - [text]: http://host:8001/images/file 형식 (display processing)
+                const referenceMarkdownImagePattern = /- \[([^\]]+)\]:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\s]+)/;
+                const referenceMarkdownMatch = line.match(referenceMarkdownImagePattern);
+                
+                if (referenceMarkdownMatch) {
+                    let originalImageUrl = referenceMarkdownMatch[2];
+                    const linkText = referenceMarkdownMatch[1];
+                    console.log("🖼️ Found reference markdown format in display processing (priority 5):", originalImageUrl);
+                    
+                    // URL 정리 (끝의 ']' 문자 제거 등)
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    
+                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
+                    if (processedUrls.has(originalImageUrl)) {
+                        console.log("🔄 Reference markdown format already processed in this block, skipping:", originalImageUrl);
+                        processedLines.push(line); // 원본 줄 유지
+                        return;
+                    }
+                    
+                    // 처리된 URL로 표시
+                    processedUrls.add(originalImageUrl);
+                    
+                    // 프록시 URL로 변환
+                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
+                    
+                    // 전체 줄을 이미지 태그로 교체 (링크 텍스트를 alt로 사용)
+                    const imageTag = `<img src="${proxyUrl}" alt="${linkText}" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
                     processedLines.push(imageTag);
                     return;
                 }
