@@ -1168,6 +1168,22 @@
                 return placeholder;
             });
             
+            // 2.5. 일반 마크다운 링크 패턴: [text](image_url) - 이미지가 링크된 경우
+            const generalMarkdownPattern = /\[([^\]]*)\]\((https?:\/\/[^\)]+:8001\/images\/[^\)]+)\)/gi;
+            const generalMarkdownMatches = text.match(generalMarkdownPattern);
+            console.log('🖼️ [DEBUG] General markdown link pattern matches found:', generalMarkdownMatches ? generalMarkdownMatches.length : 0, generalMarkdownMatches);
+            
+            text = text.replace(generalMarkdownPattern, function(match, linkText, url) {
+                console.log('🖼️ [DEBUG] General markdown link match found:', { match, linkText, url });
+                const proxyUrl = self.convertToProxyImageUrl(url);
+                const imgTag = `<img src="${proxyUrl}" alt="${linkText || 'Image'}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = imgTag;
+                console.log('🖼️ [DEBUG] Created general markdown placeholder:', placeholder, 'for URL:', url);
+                return placeholder;
+            });
+            
             // 3. 단순 URL 패턴 (독립된 줄에 있는 경우) - 단순화된 패턴
             const simplePlainUrlPattern = /^\s*(https?:\/\/\S+\.(jpg|jpeg|png|gif|webp|bmp|svg)\S*)\s*$/gmi;
             const plainUrlMatches = text.match(simplePlainUrlPattern);
