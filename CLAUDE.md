@@ -117,7 +117,7 @@ git push haystack master         # Push to haystack remote master branch
 - **Internal API**: Uses `THREECHAN_API_INTERNAL_URL` for document processing
 
 #### KACHI AI Search (`wp-content/plugins/kachi-ai-search/`)
-- **Version**: 2.3.0
+- **Version**: 3.0.2
 - **Main Class**: `Kachi_Query_System`
 - **Features**:
   - AI-powered natural language document search

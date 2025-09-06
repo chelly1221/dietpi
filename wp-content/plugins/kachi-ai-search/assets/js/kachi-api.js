@@ -894,6 +894,32 @@
                         console.log('⏭️ Skipping already processed normal image');
                     }
                 }
+                
+                // 우선순위 4: URL 레이블 패턴 - [URL: http://host:8001/images/file] 형식
+                const urlLabelPattern = /- \[URL:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]/;
+                const urlLabelMatch = line.match(urlLabelPattern);
+                
+                if (urlLabelMatch) {
+                    let originalImageUrl = urlLabelMatch[1];
+                    console.log('🖼️ Found URL label format in real-time (priority 4):', originalImageUrl);
+                    
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    console.log('🧹 Cleaned URL label URL:', originalImageUrl);
+                    
+                    // 이미 처리된 이미지가 아닌 경우에만 추가
+                    if (!processedImageUrls.has(originalImageUrl)) {
+                        completeImages.push({
+                            lineIndex: lineIndex,
+                            originalUrl: originalImageUrl,
+                            type: 'url-label',
+                            fullLine: line
+                        });
+                        processedImageUrls.add(originalImageUrl);
+                        console.log('✅ Added URL label image for real-time processing');
+                    } else {
+                        console.log('⏭️ Skipping already processed URL label image');
+                    }
+                }
             });
             
             console.log('🖼️ Total complete images detected:', completeImages.length);
@@ -932,6 +958,10 @@
                     // 일반 마크다운 패턴 교체  
                     const markdownPattern = new RegExp(`\\[.*?\\]\\(${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
                     updatedLine = fullLine.replace(markdownPattern, imageTag);
+                } else if (type === 'url-label') {
+                    // URL 레이블 패턴 교체 - [URL: http://...] 형식
+                    const urlLabelPattern = new RegExp(`- \\[URL:\\s*${originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`, 'g');
+                    updatedLine = fullLine.replace(urlLabelPattern, imageTag);
                 } else {
                     // 일반 URL 패턴 교체
                     const plainUrlPattern = new RegExp(originalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
@@ -1178,6 +1208,22 @@
                 }
                 console.log('🖼️ [DEBUG] Fallback pattern did not match criteria, keeping original');
                 return match;
+            });
+            
+            // 5. URL 레이블 패턴 - [URL: http://...] 형식
+            const urlLabelPattern = /- \[URL:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]/gi;
+            const urlLabelMatches = text.match(urlLabelPattern);
+            console.log('🖼️ [DEBUG] URL Label pattern matches found:', urlLabelMatches ? urlLabelMatches.length : 0, urlLabelMatches);
+            
+            text = text.replace(urlLabelPattern, function(match, url) {
+                console.log('🖼️ [DEBUG] URL Label match found:', { match, url });
+                const proxyUrl = self.convertToProxyImageUrl(url);
+                const imgTag = `<img src="${proxyUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" loading="lazy" onerror="this.style.display='none'">`;
+                
+                const placeholder = `__IMAGE_PLACEHOLDER_${imageCounter++}__`;
+                imagePlaceholders[placeholder] = imgTag;
+                console.log('🖼️ [DEBUG] Created URL label placeholder:', placeholder, 'for URL:', url);
+                return placeholder;
             });
             
             // 기존 포맷팅 로직 적용 (이미지 처리 제외)
@@ -1619,6 +1665,36 @@
                     // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
                     if (processedUrls.has(originalImageUrl)) {
                         console.log("🔄 URL already processed in this block, skipping:", originalImageUrl);
+                        processedLines.push(line); // 원본 줄 유지
+                        return;
+                    }
+                    
+                    // 처리된 URL로 표시
+                    processedUrls.add(originalImageUrl);
+                    
+                    // 프록시 URL로 변환
+                    const proxyUrl = this.convertToProxyImageUrl(originalImageUrl);
+                    
+                    // 전체 줄을 이미지 태그로 교체
+                    const imageTag = `<img src="${proxyUrl}" alt="이미지" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" data-original-url="${originalImageUrl}">`;
+                    processedLines.push(imageTag);
+                    return;
+                }
+                
+                // 우선순위 4: URL 레이블 패턴 - [URL: http://host:8001/images/file] 형식 (display processing)
+                const urlLabelImagePattern = /- \[URL:\s*(https?:\/\/[^:\s]+:8001\/images\/[^\]]+)\]/;
+                const urlLabelMatch = line.match(urlLabelImagePattern);
+                
+                if (urlLabelMatch) {
+                    let originalImageUrl = urlLabelMatch[1];
+                    console.log("🖼️ Found URL label format in display processing (priority 4):", originalImageUrl);
+                    
+                    // URL 정리 (끝의 ']' 문자 제거 등)
+                    originalImageUrl = this.cleanImageUrl(originalImageUrl);
+                    
+                    // 이미 처리된 URL인지 확인 (전체 텍스트 블록 내에서 중복 방지)
+                    if (processedUrls.has(originalImageUrl)) {
+                        console.log("🔄 URL label format already processed in this block, skipping:", originalImageUrl);
                         processedLines.push(line); // 원본 줄 유지
                         return;
                     }
