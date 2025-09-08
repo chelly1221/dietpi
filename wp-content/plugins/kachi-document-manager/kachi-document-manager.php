@@ -1063,6 +1063,17 @@ class ThreeChan_PDF_Manager {
             header('Content-Type: ' . $headers['content-type']);
         }
         
+        // Pass through cache-control headers from backend
+        if (isset($headers['cache-control'])) {
+            header('Cache-Control: ' . $headers['cache-control']);
+        }
+        if (isset($headers['pragma'])) {
+            header('Pragma: ' . $headers['pragma']);
+        }
+        if (isset($headers['expires'])) {
+            header('Expires: ' . $headers['expires']);
+        }
+        
         http_response_code($status_code);
         echo $body;
         wp_die();
@@ -1206,23 +1217,36 @@ class ThreeChan_PDF_Manager {
      * AJAX: Delete file (Internal Network Version)
      */
     public function ajax_delete_file() {
+        error_log('🗑 WordPress: ajax_delete_file called with POST data: ' . print_r($_POST, true));
+        
         if (!wp_verify_nonce($_POST['nonce'], '3chan-pdf-nonce')) {
+            error_log('🗑 WordPress: Nonce verification failed');
             wp_send_json_error('Security check failed');
         }
         
         // Verify internal network access
         $client_ip = $_SERVER['REMOTE_ADDR'];
         if (!$this->is_internal_ip($client_ip)) {
+            error_log('🗑 WordPress: Internal network check failed for IP: ' . $client_ip);
             wp_send_json_error('Access denied - External network');
             return;
         }
         
         $file_id = sanitize_text_field($_POST['file_id']);
+        error_log('🗑 WordPress: Extracted file_id: "' . $file_id . '" (length: ' . strlen($file_id) . ')');
+        
+        if (empty($file_id)) {
+            error_log('🗑 WordPress: ERROR - file_id is empty after sanitization');
+            wp_send_json_error('file_id parameter is missing or empty');
+            return;
+        }
         
         // Call API to delete file
         $api_url = THREECHAN_API_INTERNAL_URL;
+        $delete_url = $api_url . '/delete-document/?file_id=' . urlencode($file_id);
+        error_log('🗑 WordPress: Calling backend deletion URL: ' . $delete_url);
         
-        $response = wp_remote_request($api_url . '/delete-document/?file_id=' . $file_id, array(
+        $response = wp_remote_request($delete_url, array(
             'method' => 'DELETE',
             'timeout' => 30,
             'sslverify' => false,
@@ -1231,7 +1255,12 @@ class ThreeChan_PDF_Manager {
             )
         ));
         
-        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        error_log('🗑 WordPress: Backend response code: ' . $response_code);
+        error_log('🗑 WordPress: Backend response body: ' . $response_body);
+        
+        if (!is_wp_error($response) && $response_code === 200) {
             // Also delete from local database if exists
             global $wpdb;
             $table_name = $wpdb->prefix . '3chan_pdf_uploads';

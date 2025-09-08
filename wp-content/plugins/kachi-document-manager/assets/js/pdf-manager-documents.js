@@ -108,6 +108,8 @@
                 const params = {};
                 if (window.userSosok) params.sosok = window.userSosok;
                 if (window.userSite) params.site = window.userSite;
+                // Add timestamp for cache-busting
+                params._t = Date.now();
 
                 const response = await window.PDFManagerAPI.request('list-documents/', { params });
                 const data = await response.json();

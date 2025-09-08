@@ -350,6 +350,9 @@ class Kachi_Ajax {
             if ($site) $params['site'] = sanitize_text_field($site);
         }
         
+        // Add timestamp for cache-busting
+        $params['_t'] = time();
+        
         if (!empty($params)) {
             $url .= '?' . http_build_query($params);
         }
