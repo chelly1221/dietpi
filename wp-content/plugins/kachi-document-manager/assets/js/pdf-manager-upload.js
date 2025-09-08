@@ -851,50 +851,41 @@
                 console.log("📡 Upload completed with data:", data);
 
                 if (data.status === 'accepted' && data.task_ids) {
-                    // SUCCESS - Upload completed, show completion message briefly then reset
-                    console.log("✅ Files uploaded successfully, showing completion then resetting");
+                    // SUCCESS - Upload completed, reset immediately
+                    console.log("✅ Files uploaded successfully, resetting immediately");
                     
-                    // Update progress to 100% and show completion message
+                    // Update progress to 100% 
                     this.updateProgressBars(100);
                     
-                    const loadingTextEl = document.querySelector('#loadingEmbedPDF .loading-text');
-                    if (loadingTextEl) {
-                        loadingTextEl.textContent = '✅ 업로드 완료! 백그라운드 처리가 시작됩니다...';
+                    // Hide loading immediately
+                    if (loadingBox) {
+                        loadingBox.style.display = 'none';
                     }
                     
-                    // Show success for 2 seconds, then reset form
-                    setTimeout(() => {
-                        // Hide loading
-                        if (loadingBox) {
-                            loadingBox.style.display = 'none';
-                        }
-                        
-                        // Reset form 
-                        this.resetUploadForm();
-                        
-                        // Show dropzone again
-                        if (dropzone) {
-                            dropzone.style.display = 'block';
-                        }
-                        
-                        // Clear tag input
-                        const tagInput = document.getElementById("tagInput");
-                        if (tagInput) {
-                            tagInput.value = '';
-                        }
-                        
-                        // Hide response box
-                        if (responseBox) {
-                            responseBox.style.display = 'none';
-                            responseBox.innerHTML = '';
-                        }
-                        
-                        console.log("📝 Upload form reset - ready for new files");
-                        
-                        // Show brief success notification
-                        this.showUploadSuccessNotification(data.task_ids.length);
-                        
-                    }, 2000); // 2 second delay to show completion
+                    // Reset form immediately
+                    this.resetUploadForm();
+                    
+                    // Show dropzone again immediately
+                    if (dropzone) {
+                        dropzone.style.display = 'block';
+                    }
+                    
+                    // Clear tag input immediately
+                    const tagInput = document.getElementById("tagInput");
+                    if (tagInput) {
+                        tagInput.value = '';
+                    }
+                    
+                    // Hide response box immediately
+                    if (responseBox) {
+                        responseBox.style.display = 'none';
+                        responseBox.innerHTML = '';
+                    }
+                    
+                    console.log("📝 Upload form reset - ready for new files");
+                    
+                    // Show brief success notification
+                    this.showUploadSuccessNotification(data.task_ids.length);
                     
                     // Fetch tasks in background - NO WAITING, completely non-blocking
                     this.fetchInitialTasks().catch(err => {
@@ -1075,13 +1066,13 @@
                 fill.style.width = percent + '%';
             });
             
-            // Update loading text with more descriptive message
+            // Update loading text with progress
             const loadingTextEl = document.querySelector('#loadingEmbedPDF .loading-text');
             if (loadingTextEl) {
                 if (percent < 100) {
-                    loadingTextEl.textContent = `파일 전송 중... ${percent}%`;
+                    loadingTextEl.textContent = `파일 업로드 중... ${percent}%`;
                 } else {
-                    loadingTextEl.textContent = '업로드 완료! 백그라운드 처리를 시작합니다...';
+                    loadingTextEl.textContent = '업로드 완료!';
                 }
             }
         },
@@ -1093,7 +1084,7 @@
             notification.innerHTML = `
                 <div class="notification-content">
                     <span class="notification-icon">✅</span>
-                    <span class="notification-text">${fileCount}개 파일 업로드 완료</span>
+                    <span class="notification-text">${fileCount}개 파일 전송됨</span>
                 </div>
             `;
             
