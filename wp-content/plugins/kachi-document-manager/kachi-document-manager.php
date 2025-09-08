@@ -3,7 +3,7 @@
  * Plugin Name: KACHI Document Manager - AI Document System (Internal Network Version)
  * Plugin URI: https://3chan.kr/plugins/kachi-document-manager
  * Description: KACHI 내부망 전용 AI 기반 PDF/DOCX/PPTX/HWPX 문서 업로드, 분할 저장 및 태그 관리 시스템
- * Version: 3.0.6
+ * Version: 3.0.7
  * Author: 3chan Development Team
  * Author URI: https://3chan.kr
  * License: GPL v2 or later
@@ -29,7 +29,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('THREECHAN_PDF_VERSION', '3.0.6');
+define('THREECHAN_PDF_VERSION', '3.0.7');
 define('THREECHAN_PDF_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('THREECHAN_PDF_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('THREECHAN_PDF_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -157,9 +157,7 @@ class ThreeChan_PDF_Manager {
         add_action('wp_ajax_3chan_proxy_websocket', array($this, 'release_session_lock'), 1);
         add_action('wp_ajax_nopriv_3chan_proxy_websocket', array($this, 'release_session_lock'), 1);
         
-        // AJAX handlers
-        add_action('wp_ajax_3chan_pdf_upload', array($this, 'handle_ajax_upload'));
-        add_action('wp_ajax_nopriv_3chan_pdf_upload', array($this, 'handle_ajax_upload'));
+        // Legacy upload handlers removed - all uploads now go through proxy
         add_action('wp_ajax_3chan_get_settings', array($this, 'ajax_get_settings'));
         add_action('wp_ajax_3chan_save_settings', array($this, 'ajax_save_settings'));
         add_action('wp_ajax_3chan_proxy_api', array($this, 'handle_api_proxy'));
@@ -831,7 +829,7 @@ class ThreeChan_PDF_Manager {
         
         // For backward compatibility
         if ($method === 'GET') {
-            $post_endpoints = array('upload-pdf/', 'create-document/', 'check-duplicate/', 'upload-async/');
+            $post_endpoints = array('create-document/', 'check-duplicate/', 'upload-async/');
             $delete_endpoints = array('delete-document/');
             $put_endpoints = array('update-document/', 'update-document-tags/');
             
@@ -869,10 +867,6 @@ class ThreeChan_PDF_Manager {
         // For async upload, server responds immediately after saving files
         if (strpos($endpoint, 'upload-async/') !== false) {
             error_log('3chan PDF Manager - Async upload endpoint detected');
-        }
-        // For synchronous upload (old endpoint), use longer timeout
-        elseif (strpos($endpoint, 'upload-pdf/') !== false) {
-            $timeout = 120; // Keep long timeout for old sync upload
         }
         
         $args = array(
@@ -1159,13 +1153,7 @@ class ThreeChan_PDF_Manager {
         return ob_get_clean();
     }
     
-    /**
-     * Handle AJAX upload
-     */
-    public function handle_ajax_upload() {
-        // This is now handled by the proxy
-        wp_send_json_error(array('message' => 'Use proxy endpoint'));
-    }
+    // Legacy handle_ajax_upload method removed - all uploads handled by proxy
     
     /**
      * AJAX: Get settings
