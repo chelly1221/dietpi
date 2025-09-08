@@ -445,7 +445,14 @@
                 
                 let fileListHTML = '';
                 for (let i = 0; i < files.length; i++) {
-                    fileListHTML += `<div class="response-filename" title="${files[i].name}">${i + 1}. ${files[i].name}</div>`;
+                    fileListHTML += `
+                        <div class="response-filename" title="${files[i].name}">
+                            <span class="file-number">${i + 1}.</span> 
+                            <span class="file-name">${files[i].name}</span>
+                            <div class="file-progress-bar" style="display: none;">
+                                <div class="file-progress-fill"></div>
+                            </div>
+                        </div>`;
                 }
                 fileListEl.innerHTML = fileListHTML;
                 
@@ -836,54 +843,58 @@
                     formData.append("overwrite_decisions", JSON.stringify(this.overwriteDecisions));
                 }
 
-                // Send files to server
-                console.log("📤 Sending files to server...");
-                const res = await window.PDFManagerAPI.request('upload-async/', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                console.log("📡 Response received:", res);
+                // Send files to server with progress tracking
+                console.log("📤 Sending files to server with progress tracking...");
                 
-                // API layer handles response parsing - just get JSON directly
-                let data;
-                try {
-                    data = await res.json();
-                } catch (e) {
-                    console.error("❌ Failed to parse response JSON:", e);
-                    throw new Error("서버 응답 파싱 실패");
-                }
+                const data = await this.uploadWithProgress(formData);
                 
-                console.log("📡 Parsed data:", data);
+                console.log("📡 Upload completed with data:", data);
 
                 if (data.status === 'accepted' && data.task_ids) {
-                    // SUCCESS - Immediately reset form and hide loading
-                    console.log("✅ Files uploaded successfully, resetting form immediately");
+                    // SUCCESS - Upload completed, show completion message briefly then reset
+                    console.log("✅ Files uploaded successfully, showing completion then resetting");
                     
-                    // Hide loading IMMEDIATELY
-                    if (loadingBox) {
-                        loadingBox.style.display = 'none';
+                    // Update progress to 100% and show completion message
+                    this.updateProgressBars(100);
+                    
+                    const loadingTextEl = document.querySelector('#loadingEmbedPDF .loading-text');
+                    if (loadingTextEl) {
+                        loadingTextEl.textContent = '✅ 업로드 완료! 백그라운드 처리가 시작됩니다...';
                     }
                     
-                    // Reset form IMMEDIATELY
-                    this.resetUploadForm();
-                    
-                    // Show dropzone again IMMEDIATELY
-                    if (dropzone) {
-                        dropzone.style.display = 'block';
-                    }
-                    
-                    // Clear tag input IMMEDIATELY
-                    const tagInput = document.getElementById("tagInput");
-                    if (tagInput) {
-                        tagInput.value = '';
-                    }
-                    
-                    // Hide response box (no success message)
-                    if (responseBox) {
-                        responseBox.style.display = 'none';
-                        responseBox.innerHTML = '';
-                    }
+                    // Show success for 2 seconds, then reset form
+                    setTimeout(() => {
+                        // Hide loading
+                        if (loadingBox) {
+                            loadingBox.style.display = 'none';
+                        }
+                        
+                        // Reset form 
+                        this.resetUploadForm();
+                        
+                        // Show dropzone again
+                        if (dropzone) {
+                            dropzone.style.display = 'block';
+                        }
+                        
+                        // Clear tag input
+                        const tagInput = document.getElementById("tagInput");
+                        if (tagInput) {
+                            tagInput.value = '';
+                        }
+                        
+                        // Hide response box
+                        if (responseBox) {
+                            responseBox.style.display = 'none';
+                            responseBox.innerHTML = '';
+                        }
+                        
+                        console.log("📝 Upload form reset - ready for new files");
+                        
+                        // Show brief success notification
+                        this.showUploadSuccessNotification(data.task_ids.length);
+                        
+                    }, 2000); // 2 second delay to show completion
                     
                     // Fetch tasks in background - NO WAITING, completely non-blocking
                     this.fetchInitialTasks().catch(err => {
@@ -965,6 +976,147 @@
 
         handleUploadCancel: function() {
             this.resetUploadForm();
+        },
+        
+        uploadWithProgress: function(formData) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                
+                // Track upload progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        console.log(`📈 Upload progress: ${percentComplete}%`);
+                        this.updateUploadProgress(percentComplete);
+                    }
+                });
+                
+                // Handle completion
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            
+                            // Handle WordPress AJAX response format
+                            if (response.success && response.data) {
+                                resolve(response.data);
+                            } else if (response.status === 'accepted') {
+                                // Direct API response
+                                resolve(response);
+                            } else {
+                                reject(new Error(response.message || '업로드 실패'));
+                            }
+                        } catch (e) {
+                            console.error("❌ Failed to parse response:", e);
+                            reject(new Error('서버 응답 파싱 실패'));
+                        }
+                    } else {
+                        reject(new Error(`HTTP ${xhr.status}: 업로드 실패`));
+                    }
+                });
+                
+                // Handle errors
+                xhr.addEventListener('error', () => {
+                    reject(new Error('네트워크 오류'));
+                });
+                
+                xhr.addEventListener('timeout', () => {
+                    reject(new Error('업로드 타임아웃'));
+                });
+                
+                // Configure request
+                xhr.timeout = 300000; // 5 minutes for large files
+                
+                // Prepare form data for WordPress AJAX
+                const ajaxFormData = new FormData();
+                ajaxFormData.append('action', '3chan_proxy_api');
+                ajaxFormData.append('nonce', window.threechan_pdf_ajax.nonce);
+                ajaxFormData.append('endpoint', 'upload-async/');
+                ajaxFormData.append('method', 'POST');
+                
+                // Copy all form data
+                for (let [key, value] of formData.entries()) {
+                    ajaxFormData.append(key, value);
+                }
+                
+                // Start upload
+                xhr.open('POST', window.threechan_pdf_ajax.ajax_url);
+                xhr.send(ajaxFormData);
+            });
+        },
+        
+        updateUploadProgress: function(percent) {
+            // Update loading text with progress
+            const loadingTextEl = document.querySelector('#loadingEmbedPDF .loading-text');
+            if (loadingTextEl) {
+                loadingTextEl.textContent = `파일 업로드 중... ${percent}%`;
+            }
+            
+            // Update any progress bars (will be implemented next)
+            this.updateProgressBars(percent);
+        },
+        
+        updateProgressBars: function(percent) {
+            // Update the main progress bar in loading section
+            const progressFill = document.querySelector('#loadingEmbedPDF .progress-fill');
+            if (progressFill) {
+                progressFill.style.width = percent + '%';
+            }
+            
+            // Show and update individual file progress bars
+            const fileProgressBars = document.querySelectorAll('.file-progress-bar');
+            const fileProgressFills = document.querySelectorAll('.file-progress-fill');
+            
+            fileProgressBars.forEach(bar => {
+                bar.style.display = 'block';
+            });
+            
+            fileProgressFills.forEach(fill => {
+                fill.style.width = percent + '%';
+            });
+            
+            // Update loading text with more descriptive message
+            const loadingTextEl = document.querySelector('#loadingEmbedPDF .loading-text');
+            if (loadingTextEl) {
+                if (percent < 100) {
+                    loadingTextEl.textContent = `파일 전송 중... ${percent}%`;
+                } else {
+                    loadingTextEl.textContent = '업로드 완료! 백그라운드 처리를 시작합니다...';
+                }
+            }
+        },
+        
+        showUploadSuccessNotification: function(fileCount) {
+            // Create temporary success notification
+            const notification = document.createElement('div');
+            notification.className = 'upload-success-notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span class="notification-icon">✅</span>
+                    <span class="notification-text">${fileCount}개 파일 업로드 완료</span>
+                </div>
+            `;
+            
+            // Add to page
+            const container = document.querySelector('.upload-section');
+            if (container) {
+                container.appendChild(notification);
+                
+                // Show with animation
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    notification.classList.add('hide');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 500);
+                }, 3000);
+            }
         }
     };
 

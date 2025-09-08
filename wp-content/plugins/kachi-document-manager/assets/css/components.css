@@ -1314,3 +1314,115 @@
     font-size: 10px;
   }
 }
+
+/* ===== FILE PROGRESS BARS ===== */
+.file-progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--light-gray);
+  border-radius: 3px;
+  margin-top: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.file-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.file-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Enhanced file display with progress */
+.response-filename {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.response-filename .file-name {
+  margin-left: 5px;
+  flex: 1;
+}
+
+.response-filename .file-number {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-color);
+}
+
+/* Upload progress enhancements */
+.upload-progress .loading-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.upload-progress .progress-bar {
+  margin-bottom: 20px;
+}
+
+/* Upload Success Notification */
+.upload-success-notification {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--success-color), #28a745);
+  color: white;
+  border-radius: 10px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transform: translateX(400px);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 1000;
+}
+
+.upload-success-notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.upload-success-notification.hide {
+  transform: translateX(400px);
+  opacity: 0;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notification-icon {
+  font-size: 18px;
+}
+
+.notification-text {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+}
