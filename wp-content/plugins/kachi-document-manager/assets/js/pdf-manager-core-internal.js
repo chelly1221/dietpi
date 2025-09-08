@@ -79,15 +79,9 @@
             // Determine timeout based on endpoint
             let timeout = config.DEFAULT_TIMEOUT;
             
-            // For upload endpoints, use longer timeout
-            if (finalEndpoint.includes('upload-async') || finalEndpoint.includes('upload-pdf')) {
-                timeout = config.UPLOAD_TIMEOUT;
-                console.log(`⏱️ Using extended timeout for upload: ${timeout}ms`);
-            }
-            
-            // For async upload, we expect quick response (just task creation)
+            // For async upload, we expect quick response (just file saving + task creation)
             if (finalEndpoint.includes('upload-async')) {
-                timeout = 60000; // 60 seconds should be enough for creating tasks
+                timeout = 30000; // 30 seconds for immediate file upload response
                 console.log(`⏱️ Using async upload timeout: ${timeout}ms`);
             }
 
@@ -116,59 +110,10 @@
                     }
                 }
 
-                // For async upload, check if we got a WordPress AJAX error response
-                if (finalEndpoint.includes('upload-async')) {
-                    const clonedResponse = response.clone();
-                    try {
-                        const text = await clonedResponse.text();
-                        const jsonData = JSON.parse(text);
-                        
-                        // Check if WordPress AJAX returned an error
-                        if (jsonData.success === false) {
-                            console.error('WordPress AJAX Error:', jsonData.data);
-                            
-                            // If it's a timeout error, create a mock success response
-                            if (jsonData.data?.error?.includes('timed out') || 
-                                jsonData.data?.error?.includes('timeout')) {
-                                console.log('⚠️ Upload request timed out, but files might be processing');
-                                
-                                // Return a mock successful response
-                                // The files are likely uploaded and being processed
-                                const mockResponse = new Response(JSON.stringify({
-                                    status: 'accepted',
-                                    task_ids: ['timeout-unknown'],
-                                    message: '파일 업로드가 시작되었습니다. 처리 상태는 작업 목록에서 확인하세요.'
-                                }), {
-                                    status: 200,
-                                    headers: { 'Content-Type': 'application/json' }
-                                });
-                                return mockResponse;
-                            }
-                        }
-                    } catch (e) {
-                        // If JSON parsing fails, return original response
-                        console.log('Response is not JSON, returning as-is');
-                    }
-                }
-
+                // Return response directly - let calling code handle parsing
                 return response;
                 
             } catch (error) {
-                // Handle timeout errors specially for upload-async
-                if (error.name === 'AbortError' && finalEndpoint.includes('upload-async')) {
-                    console.warn('⚠️ Upload request timed out, assuming success');
-                    
-                    // Return a mock successful response for timeout
-                    return new Response(JSON.stringify({
-                        status: 'accepted',
-                        task_ids: ['timeout-unknown'],
-                        message: '파일 업로드가 시작되었습니다. 처리 상태는 작업 목록에서 확인하세요.'
-                    }), {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                }
-                
                 console.error('API Request Error:', error);
                 throw error;
             }

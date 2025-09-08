@@ -843,16 +843,14 @@
                     body: formData
                 });
 
-                console.log("📡 Raw response received:", res);
-                const responseText = await res.text();
-                console.log("📡 Response text:", responseText);
+                console.log("📡 Response received:", res);
                 
+                // API layer handles response parsing - just get JSON directly
                 let data;
                 try {
-                    data = JSON.parse(responseText);
+                    data = await res.json();
                 } catch (e) {
-                    console.error("❌ Failed to parse JSON:", e);
-                    console.error("Response was:", responseText);
+                    console.error("❌ Failed to parse response JSON:", e);
                     throw new Error("서버 응답 파싱 실패");
                 }
                 
@@ -887,13 +885,16 @@
                         responseBox.innerHTML = '';
                     }
                     
-                    // IMPORTANT: Immediately refresh task list to show new uploading/queued tasks
-                    // Use await to ensure tasks are fetched and displayed
-                    await this.fetchInitialTasks();
+                    // Fetch tasks in background - NO WAITING, completely non-blocking
+                    this.fetchInitialTasks().catch(err => {
+                        console.warn("Background task fetch failed:", err);
+                    });
                     
-                    // Force another refresh after a short delay to catch any status updates
+                    // Schedule additional refreshes in background
                     setTimeout(() => {
-                        this.fetchInitialTasks();
+                        this.fetchInitialTasks().catch(err => {
+                            console.warn("Scheduled task fetch failed:", err);
+                        });
                     }, 500);
                     
                 } else {
