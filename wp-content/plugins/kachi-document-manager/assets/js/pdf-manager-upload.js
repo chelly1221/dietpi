@@ -990,9 +990,18 @@
                             
                             // Handle WordPress AJAX response format
                             if (response.success && response.data) {
+                                // Start task polling for uploaded files
+                                if (response.data.files && window.PDFManagerTaskPolling) {
+                                    const fileIds = response.data.files.map(file => file.file_id);
+                                    window.PDFManagerTaskPolling.startPollingForFiles(fileIds);
+                                }
                                 resolve(response.data);
-                            } else if (response.status === 'accepted') {
-                                // Direct API response
+                            } else if (response.status === 'uploaded') {
+                                // Direct API response from simple upload
+                                if (response.files && window.PDFManagerTaskPolling) {
+                                    const fileIds = response.files.map(file => file.file_id);
+                                    window.PDFManagerTaskPolling.startPollingForFiles(fileIds);
+                                }
                                 resolve(response);
                             } else {
                                 reject(new Error(response.message || '업로드 실패'));
@@ -1022,12 +1031,14 @@
                 const ajaxFormData = new FormData();
                 ajaxFormData.append('action', '3chan_proxy_api');
                 ajaxFormData.append('nonce', window.threechan_pdf_ajax.nonce);
-                ajaxFormData.append('endpoint', 'upload-async/');
+                ajaxFormData.append('endpoint', 'upload-simple/');
                 ajaxFormData.append('method', 'POST');
                 
-                // Copy all form data
+                // Copy only files for simple upload
                 for (let [key, value] of formData.entries()) {
-                    ajaxFormData.append(key, value);
+                    if (key === 'files') {
+                        ajaxFormData.append(key, value);
+                    }
                 }
                 
                 // Start upload

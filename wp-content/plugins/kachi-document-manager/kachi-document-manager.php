@@ -579,6 +579,14 @@ class ThreeChan_PDF_Manager {
                 true
             );
             
+            wp_enqueue_script(
+                '3chan-pdf-manager-task-polling',
+                THREECHAN_PDF_PLUGIN_URL . 'assets/js/pdf-manager-task-polling.js',
+                array('3chan-pdf-manager-core'),
+                THREECHAN_PDF_VERSION,
+                true
+            );
+            
             // Localize script - only proxy mode
             wp_localize_script('3chan-pdf-manager-core', 'threechan_pdf_ajax', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
