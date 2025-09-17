@@ -838,7 +838,7 @@
 
                 // Send files to server
                 console.log("📤 Sending files to server...");
-                const res = await window.PDFManagerAPI.request('upload-async/', {
+                const res = await window.PDFManagerAPI.request('upload-pdf/', {
                     method: 'POST',
                     body: formData
                 });
@@ -858,7 +858,7 @@
                 
                 console.log("📡 Parsed data:", data);
 
-                if (data.status === 'accepted' && data.task_ids) {
+                if (data.results) {
                     // SUCCESS - Immediately reset form and hide loading
                     console.log("✅ Files uploaded successfully, resetting form immediately");
                     
@@ -887,14 +887,10 @@
                         responseBox.innerHTML = '';
                     }
                     
-                    // IMPORTANT: Immediately refresh task list to show new uploading/queued tasks
-                    // Use await to ensure tasks are fetched and displayed
-                    await this.fetchInitialTasks();
-                    
-                    // Force another refresh after a short delay to catch any status updates
-                    setTimeout(() => {
-                        this.fetchInitialTasks();
-                    }, 500);
+                    // IMPORTANT: Refresh document list to show newly uploaded documents
+                    if (window.PDFManagerDocuments && window.PDFManagerDocuments.refreshDocuments) {
+                        await window.PDFManagerDocuments.refreshDocuments();
+                    }
                     
                 } else {
                     throw new Error(data.message || '업로드 실패');
